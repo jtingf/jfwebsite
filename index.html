@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive PNG</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #image-container {
+            position: absolute;
+            transition: transform 0.5s, top 0.5s, left 0.5s;
+        }
+
+        #image {
+            width: 200px;
+            height: auto;
+            object-fit: contain;
+            outline: none; /* Removes the blue bounding box */
+            transition: width 0.5s, height 0.5s; /* Adds smooth resizing */
+            user-select: none; /* Prevents accidental selection */
+        }
+    </style>
+</head>
+<body>
+    <div id="image-container">
+        <img id="image" src="jayu.png" alt="PNG Image">
+    </div>
+    <audio id="audio" src="kitty-meow.mp3"></audio>
+
+    <script>
+        const imageContainer = document.getElementById('image-container');
+        const image = document.getElementById('image');
+        const audio = document.getElementById('audio');
+
+        function getRandomInt(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        function onClick() {
+            // Play the sound
+            try {
+                audio.currentTime = 0; // Restart the sound if already playing
+                audio.play().catch(error => console.error('Audio playback error:', error));
+            } catch (e) {
+                console.error('Audio play failed:', e);
+            }
+
+            // Rotate and reposition the image
+            const angle = getRandomInt(0, 360);
+            const randomTop = getRandomInt(0, window.innerHeight - image.clientHeight);
+            const randomLeft = getRandomInt(0, window.innerWidth - image.clientWidth);
+            const randomWidth = getRandomInt(100, 300); // Random width between 100px and 300px
+
+            imageContainer.style.transform = `rotate(${angle}deg)`;
+            imageContainer.style.top = `${randomTop}px`;
+            imageContainer.style.left = `${randomLeft}px`;
+            image.style.width = `${randomWidth}px`; // Adjust the image size
+        }
+
+        // Add click event listener
+        document.body.addEventListener('click', onClick);
+    </script>
+</body>
+</html>

@@ -7,11 +7,7 @@
 
   <!-- FontAwesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-
-  <!-- Google Font -->
   <link href="https://fonts.googleapis.com/css2?family=Comfortaa&display=swap" rel="stylesheet" />
-
-  <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png" />
 
   <style>
@@ -38,6 +34,9 @@
       left: 0;
       z-index: 999;
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+      height: 190px;
+      min-height: 190px;
+      overflow: hidden;
     }
 
     .nav-group {
@@ -53,6 +52,7 @@
       font-size: 36px;
       font-weight: bold;
       color: #ffcc00;
+      text-align: center;
     }
 
     .nav-links {
@@ -98,6 +98,9 @@
       border-radius: 0;
       font-size: 32px;
       text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     #counter i {
@@ -137,13 +140,12 @@
     body::before {
       content: "";
       display: block;
-      height: 170px;
+      height: 190px;
     }
 
     @media (max-width: 600px) {
       .site-label {
         font-size: 28px;
-        text-align: center;
       }
 
       .nav-links a {
@@ -181,7 +183,6 @@
     <img id="image" src="jayu.png" alt="PNG Cat" />
   </div>
 
-  <!-- Audio files -->
   <audio id="audio1" src="kitty-meow.mp3"></audio>
   <audio id="audio2" src="kitty-meow2.mp3"></audio>
   <audio id="audio3" src="kitty-meow3.mp3"></audio>
@@ -218,12 +219,12 @@
         console.error("Audio failed:", e);
       }
 
-      const angle = getRandomInt(0, 360);
-      const randomTop = getRandomInt(170, window.innerHeight - image.clientHeight);
+      const navHeight = 190;
+      const randomTop = getRandomInt(navHeight + 10, window.innerHeight - image.clientHeight);
       const randomLeft = getRandomInt(0, window.innerWidth - image.clientWidth);
       const randomWidth = getRandomInt(100, 300);
 
-      imageContainer.style.transform = `rotate(${angle}deg)`;
+      imageContainer.style.transform = `rotate(${getRandomInt(0, 360)}deg)`;
       imageContainer.style.top = `${randomTop}px`;
       imageContainer.style.left = `${randomLeft}px`;
       image.style.width = `${randomWidth}px`;

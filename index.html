@@ -40,9 +40,8 @@
       align-items: center;
       top: 0;
       left: 0;
-      height: 100px;
-      min-height: 100px;
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+      flex-grow: 1;
     }
 
     .nav-group {
@@ -141,8 +140,9 @@
       color: white;
       font-size: 28px;
       text-align: center;
-      padding: 14px 0;
+      padding: 14px 10px;
       box-sizing: border-box;
+      overflow: hidden;
     }
 
     #bottom-bar i {
@@ -150,13 +150,21 @@
       color: white;
     }
 
-    .bounce {
-      animation: bounce 0.3s ease;
+    #count {
+      display: inline-block;
     }
 
-    @keyframes bounce {
-      0% { transform: scale(1.3); }
-      100% { transform: scale(1); }
+    @keyframes bounce1 {
+      from, to { transform: scale(1, 1); }
+      25% { transform: scale(0.9, 1.1); }
+      50% { transform: scale(1.1, 0.9); }
+      75% { transform: scale(0.95, 1.05); }
+    }
+    @keyframes bounce2 {
+      from, to { transform: scale(1, 1); }
+      25% { transform: scale(0.9, 1.1); }
+      50% { transform: scale(1.1, 0.9); }
+      75% { transform: scale(0.95, 1.05); }
     }
 
     @media (max-width: 600px) {
@@ -220,11 +228,16 @@
     }
 
     function onCatClick(playSound) {
-      touchCount++;
+      if(playSound){
+        touchCount++;
+      }
       counter.textContent = touchCount;
-      counter.classList.remove("bounce");
-      void counter.offsetWidth;
-      counter.classList.add("bounce");
+      if( counter.style.animationName == "bounce1" ){
+        counter.style.animation = "bounce2 500ms";
+      } else {
+        counter.style.animation = "bounce1 500ms";
+      }
+
 
       // Play sound
       if(playSound){

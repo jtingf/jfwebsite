@@ -15,14 +15,10 @@
       padding: 0;
       font-family: 'Comfortaa', sans-serif;
       background: linear-gradient(to bottom, #ffffff, #e7faff);
-      background-image: url('./paw-bg.png');
+      background-image: url('paw-bg.png');
       background-repeat: repeat;
-      background-size: 320px 320px;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      height: 100dvh;
-      width: 100dvw;
+      background-size: 240px;
+      overflow-x: hidden;
     }
 
     .topbar {
@@ -33,11 +29,13 @@
       display: flex;
       flex-direction: column;
       align-items: center;
+      position: fixed;
       top: 0;
       left: 0;
       height: 100px;
       min-height: 100px;
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+      z-index: 9999;
     }
 
     .nav-group {
@@ -92,17 +90,8 @@
       margin-right: 10px;
     }
 
-    #image-frame{
-      position: relative;
-      flex-grow: 1;
-      height: 100%;
-      overflow: hidden;
-    }
-
     #image-container {
       position: absolute;
-      height: 0;
-      width: 0;
       transition: transform 0.5s, top 0.5s, left 0.5s;
     }
 
@@ -114,21 +103,25 @@
       transition: width 0.5s, height 0.5s, transform 0.2s;
       user-select: none;
       cursor: pointer;
-      transform: translate(-50%, -50%);
+      max-width: 100vw;
+      max-height: 100vh;
     }
 
     #image:hover {
       filter: drop-shadow(0 0 10px #ffcc00);
-      transform: translate(-50%, -50%) scale(1.1) rotate(2deg);
+      transform: scale(1.1) rotate(2deg);
     }
 
     #bottom-bar {
+      position: fixed;
+      bottom: 0;
       width: 100%;
       background-color: #333;
       color: white;
       font-size: 28px;
       text-align: center;
       padding: 14px 0;
+      z-index: 9999;
     }
 
     #bottom-bar i {
@@ -143,6 +136,18 @@
     @keyframes bounce {
       0% { transform: scale(1.3); }
       100% { transform: scale(1); }
+    }
+
+    body::before {
+      content: "";
+      display: block;
+      height: 100px;
+    }
+
+    body::after {
+      content: "";
+      display: block;
+      height: 80px;
     }
 
     @media (max-width: 600px) {
@@ -180,10 +185,8 @@
     </div>
   </div>
 
-  <div id="image-frame">
-    <div id="image-container">
-      <img id="image" src="./jayu.png" alt="PNG Cat" />
-    </div>
+  <div id="image-container">
+    <img id="image" src="jayu.png" alt="PNG Cat" />
   </div>
 
   <div id="bottom-bar"><i class="fas fa-paw"></i>Times you touched cat: <span id="count">0</span></div>
@@ -194,9 +197,9 @@
     const counter = document.getElementById("count");
 
     const soundFiles = [
-      "./kitty-meow.mp3",
-      "./kitty-meow2.mp3",
-      "./kitty-meow3.mp3"
+      "kitty-meow.mp3",
+      "kitty-meow2.mp3",
+      "kitty-meow3.mp3"
     ];
 
     let touchCount = 0;
@@ -205,7 +208,7 @@
       return Math.floor(Math.random() * (max - min + 1)) + min;
     }
 
-    function onCatClick(playSound) {
+    function onCatClick() {
       touchCount++;
       counter.textContent = touchCount;
       counter.classList.remove("bounce");
@@ -213,43 +216,29 @@
       counter.classList.add("bounce");
 
       // Play sound
-      if(playSound){
-        const audio = new Audio(soundFiles[getRandomInt(0, soundFiles.length - 1)]);
-        audio.volume = 1;
-        audio.play().catch(err => console.warn("Audio blocked:", err));
-      }
-      
+      const audio = new Audio(soundFiles[getRandomInt(0, soundFiles.length - 1)]);
+      audio.volume = 1;
+      audio.play().catch(err => console.warn("Audio blocked:", err));
+
       // Move the cat
-      const extraMargin = 0;
-      const randomRotation = getRandomInt(0, 360)
-      const randomWidth = getRandomInt(100, 300);
+      const navHeight = 100;
+      const bottomBarHeight = 80;
+      const buffer = 20;
 
-      //assuming image has enough white space to be ok with circle mask
-      // 1.1 scale from hover
-      const imageRadius = randomWidth*1.1/2 ;
-
-      const container = document.getElementById("image-frame")
-      const containerHeight = container.clientHeight;
-      const containerWidth = container.clientWidth;
-
-      const minTop = imageRadius + extraMargin;
-      const minLeft = imageRadius + extraMargin;
-      const maxTop = containerHeight - imageRadius - extraMargin;
-      const maxLeft = containerWidth - imageRadius - extraMargin;
+      const maxTop = window.innerHeight - image.clientHeight - bottomBarHeight - buffer;
+      const minTop = navHeight + buffer;
 
       const randomTop = getRandomInt(minTop, Math.max(minTop, maxTop));
-      const randomLeft = getRandomInt(minLeft, Math.max(minLeft, maxLeft));
- 
-      console.log(containerHeight, containerWidth, minTop, minLeft, maxTop, maxLeft, randomTop, randomLeft)
+      const randomLeft = getRandomInt(0, window.innerWidth - image.clientWidth);
+      const randomWidth = getRandomInt(100, 300);
 
-      imageContainer.style.transform = `rotate(${randomRotation}deg)`;
+      imageContainer.style.transform = `rotate(${getRandomInt(0, 360)}deg)`;
       imageContainer.style.top = `${randomTop}px`;
       imageContainer.style.left = `${randomLeft}px`;
       image.style.width = `${randomWidth}px`;
     }
 
-    image.addEventListener("click", ()=>onCatClick(true));
-    onCatClick();
+    image.addEventListener("click", onCatClick);
   </script>
 </body>
 </html>

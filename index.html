@@ -270,24 +270,28 @@
         audio.play().catch(() => {});
       }
 
-      // Move the cat within entire viewport - can go over bottom bar
-      const extraMargin = 20;
+      // Move the cat within entire viewport - with large safety margins
+      const extraMargin = 80; // Increased from 20 to 80 for better safety
       const randomRotation = getRandomInt(0, 360);
       const randomWidth = getRandomInt(100, 300);
-      const imageRadius = (randomWidth * 1.1) / 2;
+      const imageRadius = (randomWidth * 1.5) / 2; // Increased buffer factor from 1.1 to 1.5
 
       // Use viewport dimensions instead of frame dimensions
       const vh = window.innerHeight;
       const vw = window.innerWidth;
 
-      // Calculate boundaries for entire viewport
+      // Calculate boundaries for entire viewport with generous margins
       const minTop = imageRadius + extraMargin;
       const minLeft = imageRadius + extraMargin;
       const maxTop = vh - imageRadius - extraMargin;
       const maxLeft = vw - imageRadius - extraMargin;
 
-      const randomTop = getRandomInt(minTop, Math.max(minTop, maxTop));
-      const randomLeft = getRandomInt(minLeft, Math.max(minLeft, maxLeft));
+      // Ensure we don't get invalid ranges
+      const safeTop = Math.max(minTop, Math.min(maxTop, minTop));
+      const safeLeft = Math.max(minLeft, Math.min(maxLeft, minLeft));
+
+      const randomTop = getRandomInt(safeTop, Math.max(safeTop, maxTop));
+      const randomLeft = getRandomInt(safeLeft, Math.max(safeLeft, maxLeft));
 
       imageContainer.style.transform = `rotate(${randomRotation}deg)`;
       imageContainer.style.top = `${randomTop}px`;

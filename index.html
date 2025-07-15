@@ -10,13 +10,10 @@
   <link rel="icon" type="image/png" href="favicon.png" />
 
   <style>
-    html {
+    html, body {
       height: 100%;
       width: 100%;
-    }
-    body {
-      margin: 0;
-      padding: 0;
+      margin: 0; padding: 0;
       font-family: 'Comfortaa', sans-serif;
       background: linear-gradient(to bottom, #ffffff, #e7faff);
       background-image: url('./paw-bg.png');
@@ -25,8 +22,6 @@
       overflow: hidden;
       display: flex;
       flex-direction: column;
-      height: 100%;
-      width: 100%;
     }
 
     .topbar {
@@ -38,10 +33,7 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      top: 0;
-      left: 0;
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-      flex-grow: 1;
     }
 
     .nav-group {
@@ -96,7 +88,7 @@
       margin-right: 10px;
     }
 
-    #image-frame{
+    #image-frame {
       position: relative;
       flex-grow: 1;
       height: 100%;
@@ -105,17 +97,12 @@
     }
 
     #image-container {
-      position: absolute;
-      height: 0;
-      width: 0;
+      position: fixed; /* Changed from absolute to fixed */
       transition: transform 0.5s, top 0.5s, left 0.5s;
       -webkit-tap-highlight-color: transparent;
-      -webkit-touch-callout: none;
-      -webkit-user-select: none;
-      -khtml-user-select: none;
-      -moz-user-select: none;
-      -ms-user-select: none;
       user-select: none;
+      z-index: 10; /* Ensure cat appears above bottom bar */
+      pointer-events: none; /* Allow clicks to pass through container */
     }
 
     #image {
@@ -124,9 +111,9 @@
       object-fit: contain;
       outline: none;
       transition: width 0.5s, height 0.5s, transform 0.2s;
-      user-select: none;
       cursor: pointer;
       transform: translate(-50%, -50%);
+      pointer-events: auto; /* Re-enable clicks on the image itself */
     }
 
     #image:hover {
@@ -142,6 +129,7 @@
       text-align: center;
       padding: 14px 10px;
       box-sizing: border-box;
+      flex-shrink: 0;
     }
 
     #bottom-bar i {
@@ -151,19 +139,30 @@
 
     #count {
       display: inline-block;
+      transition: transform 0.3s ease;
     }
 
+    /* Fixed bounce animations - only animate the count, not the whole bar */
     @keyframes bounce1 {
-      from, to { transform: scale(1, 1); }
-      25% { transform: scale(0.9, 1.1); }
-      50% { transform: scale(1.1, 0.9); }
-      75% { transform: scale(0.95, 1.05); }
+      0%, 100% { transform: scale(1); }
+      25% { transform: scale(1.2); }
+      50% { transform: scale(0.9); }
+      75% { transform: scale(1.1); }
     }
     @keyframes bounce2 {
-      from, to { transform: scale(1, 1); }
-      25% { transform: scale(0.9, 1.1); }
-      50% { transform: scale(1.1, 0.9); }
-      75% { transform: scale(0.95, 1.05); }
+      0%, 100% { transform: scale(1); }
+      25% { transform: scale(0.9); }
+      50% { transform: scale(1.2); }
+      75% { transform: scale(0.95); }
+    }
+
+    /* Hidden video overlay */
+    #rick-video {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      display: none;
+      z-index: 1000;
     }
 
     @media (max-width: 600px) {
@@ -202,17 +201,24 @@
   </div>
 
   <div id="image-frame">
-    <div id="image-container">
-      <img id="image" src="./jayu.png" alt="PNG Cat" draggable="false"/>
-    </div>
+    <!-- Rickroll video -->
+    <video id="rick-video" src="./rick.mp4" controls></video>
   </div>
 
-  <div id="bottom-bar"><i class="fas fa-paw"></i>Times you touched cat: <span id="count">0</span></div>
+  <!-- Move image container outside of image-frame so it can go over bottom bar -->
+  <div id="image-container">
+    <img id="image" src="./jayu.png" alt="PNG Cat" draggable="false"/>
+  </div>
+
+  <div id="bottom-bar">
+    <i class="fas fa-paw"></i>Times you touched cat: <span id="count">0</span>
+  </div>
 
   <script>
     const image = document.getElementById("image");
     const imageContainer = document.getElementById("image-container");
     const counter = document.getElementById("count");
+    const video = document.getElementById("rick-video");
 
     const soundFiles = [
       "./kitty-meow.mp3",
@@ -227,46 +233,61 @@
     }
 
     function onCatClick(playSound) {
-      if(playSound){
+      if (playSound) {
         touchCount++;
       }
       counter.textContent = touchCount;
-      if( counter.style.animationName == "bounce1" ){
-        counter.style.animation = "bounce2 500ms";
-      } else {
-        counter.style.animation = "bounce1 500ms";
+
+      // Fixed bounce animation - only animate the counter, not the whole bar
+      counter.style.animation = "";
+      void counter.offsetWidth; // Force reflow
+      counter.style.animation = (counter.style.animationName === "bounce1" ? "bounce2 500ms" : "bounce1 500ms");
+
+      // reward messages
+      if (playSound) {
+        if (touchCount === 69) {
+          alert('Nice ! you can use code "cat69" for a 5 percent discount in the shop linked above');
+          return;
+        }
+        if (touchCount === 100) {
+          alert('Congrats ! you can use code "cat100" for a 10 percent discount in the shop linked above');
+          return;
+        }
+        if (touchCount === 101) {
+          video.style.display = "block";
+          video.play();
+          setTimeout(() => {
+            video.pause();
+            video.style.display = "none";
+          }, 20000);
+          return;
+        }
       }
 
-
-      // Play sound
-      if(playSound){
+      // play a random meow
+      if (playSound) {
         const audio = new Audio(soundFiles[getRandomInt(0, soundFiles.length - 1)]);
-        audio.volume = 1;
-        audio.play().catch(err => console.warn("Audio blocked:", err));
+        audio.play().catch(() => {});
       }
-      
-      // Move the cat
-      const extraMargin = 0;
-      const randomRotation = getRandomInt(0, 360)
+
+      // Move the cat within entire viewport - can go over bottom bar
+      const extraMargin = 20;
+      const randomRotation = getRandomInt(0, 360);
       const randomWidth = getRandomInt(100, 300);
+      const imageRadius = (randomWidth * 1.1) / 2;
 
-      //assuming image has enough white space to be ok with circle mask
-      // 1.1 scale from hover
-      const imageRadius = randomWidth*1.1/2 ;
+      // Use viewport dimensions instead of frame dimensions
+      const vh = window.innerHeight;
+      const vw = window.innerWidth;
 
-      const container = document.getElementById("image-frame")
-      const containerHeight = container.clientHeight;
-      const containerWidth = container.clientWidth;
-
+      // Calculate boundaries for entire viewport
       const minTop = imageRadius + extraMargin;
       const minLeft = imageRadius + extraMargin;
-      const maxTop = containerHeight - imageRadius - extraMargin;
-      const maxLeft = containerWidth - imageRadius - extraMargin;
+      const maxTop = vh - imageRadius - extraMargin;
+      const maxLeft = vw - imageRadius - extraMargin;
 
       const randomTop = getRandomInt(minTop, Math.max(minTop, maxTop));
       const randomLeft = getRandomInt(minLeft, Math.max(minLeft, maxLeft));
- 
-      console.log(containerHeight, containerWidth, minTop, minLeft, maxTop, maxLeft, randomTop, randomLeft)
 
       imageContainer.style.transform = `rotate(${randomRotation}deg)`;
       imageContainer.style.top = `${randomTop}px`;
@@ -274,8 +295,9 @@
       image.style.width = `${randomWidth}px`;
     }
 
-    image.addEventListener("click", ()=>onCatClick(true));
-    onCatClick();
+    image.addEventListener("click", () => onCatClick(true));
+    // initial placement without sound
+    onCatClick(false);
   </script>
 </body>
 </html>

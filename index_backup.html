@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>JF's trash page</title>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Comfortaa&display=swap" rel="stylesheet" />
+  <link rel="icon" type="image/png" href="favicon.png" />
+
+  <style>
+    html, body {
+      height: 100%;
+      width: 100%;
+      margin: 0; padding: 0;
+      font-family: 'Comfortaa', sans-serif;
+      background: linear-gradient(to bottom, #ffffff, #e7faff);
+      background-image: url('./paw-bg.png');
+      background-repeat: repeat;
+      background-size: 320px 320px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .topbar {
+      width: 100%;
+      background: linear-gradient(90deg, #2c2c2c, #3a3a3a);
+      color: white;
+      padding: 6px 10px 4px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    }
+
+    .nav-group {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 4px;
+    }
+
+    .site-label {
+      font-size: 22px;
+      font-weight: bold;
+      color: #ffcc00;
+      text-align: center;
+    }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .nav-links a {
+      color: white;
+      text-decoration: none;
+      font-size: 16px;
+      padding: 6px 10px;
+      border-radius: 6px;
+      transition: background 0.3s, transform 0.3s;
+    }
+
+    .nav-links a:hover {
+      background-color: #555;
+      transform: scale(1.05);
+    }
+
+    .shop-link {
+      font-size: 56px;
+      font-weight: bold;
+      padding: 10px 18px;
+      background-color: #00cfe8;
+      color: white !important;
+      border-radius: 10px;
+    }
+
+    .shop-link i {
+      font-size: 2em;
+      margin-right: 10px;
+    }
+
+    #image-frame {
+      position: relative;
+      flex-grow: 1;
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+    }
+
+    #image-container {
+      position: fixed; /* Changed from absolute to fixed */
+      transition: transform 0.5s, top 0.5s, left 0.5s;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      z-index: 10; /* Ensure cat appears above bottom bar */
+      pointer-events: none; /* Allow clicks to pass through container */
+    }
+
+    #image {
+      width: 200px;
+      height: auto;
+      object-fit: contain;
+      outline: none;
+      transition: width 0.5s, height 0.5s, transform 0.2s;
+      cursor: pointer;
+      transform: translate(-50%, -50%);
+      pointer-events: auto; /* Re-enable clicks on the image itself */
+    }
+
+    #image:hover {
+      filter: drop-shadow(0 0 10px #ffcc00);
+      transform: translate(-50%, -50%) scale(1.1) rotate(2deg);
+    }
+
+    #bottom-bar {
+      width: 100%;
+      background-color: #333;
+      color: white;
+      font-size: 28px;
+      text-align: center;
+      padding: 14px 10px;
+      box-sizing: border-box;
+      flex-shrink: 0;
+    }
+
+    #bottom-bar i {
+      margin-right: 8px;
+      color: white;
+    }
+
+    #count {
+      display: inline-block;
+      transition: transform 0.3s ease;
+    }
+
+    /* Fixed bounce animations - only animate the count, not the whole bar */
+    @keyframes bounce1 {
+      0%, 100% { transform: scale(1); }
+      25% { transform: scale(1.2); }
+      50% { transform: scale(0.9); }
+      75% { transform: scale(1.1); }
+    }
+    @keyframes bounce2 {
+      0%, 100% { transform: scale(1); }
+      25% { transform: scale(0.9); }
+      50% { transform: scale(1.2); }
+      75% { transform: scale(0.95); }
+    }
+
+    /* Hidden video overlay */
+    #rick-video {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      display: none;
+      z-index: 1000;
+    }
+
+    @media (max-width: 600px) {
+      .site-label {
+        font-size: 20px;
+      }
+
+      .nav-links a {
+        font-size: 14px;
+        padding: 6px 8px;
+      }
+
+      .shop-link {
+        font-size: 36px;
+        padding: 8px 14px;
+      }
+
+      #bottom-bar {
+        font-size: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="nav-group">
+      <div class="site-label">jtingf.com ! links&gt;&gt;</div>
+      <div class="nav-links">
+        <a href="https://x.com/JtingF" target="_blank"><i class="fab fa-twitter"></i> Twitter</a>
+        <a href="https://t.me/JtingF" target="_blank"><i class="fab fa-telegram"></i> Telegram</a>
+        <a href="https://www.youtube.com/@jting-f3237" target="_blank"><i class="fab fa-youtube"></i> YouTube</a>
+        <a href="https://www.patreon.com/JtingF" target="_blank"><i class="fab fa-patreon"></i> Patreon</a>
+        <a href="https://jtingf.shop" target="_blank" class="shop-link"><i class="fas fa-store"></i> Shop</a>
+      </div>
+    </div>
+  </div>
+
+  <div id="image-frame">
+    <!-- Rickroll video -->
+    <video id="rick-video" src="./rick.mp4" controls></video>
+  </div>
+
+  <!-- Move image container outside of image-frame so it can go over bottom bar -->
+  <div id="image-container">
+    <img id="image" src="./jayu.png" alt="PNG Cat" draggable="false"/>
+  </div>
+
+  <div id="bottom-bar">
+    <i class="fas fa-paw"></i>Times you touched cat: <span id="count">0</span>
+  </div>
+
+  <script>
+    const image = document.getElementById("image");
+    const imageContainer = document.getElementById("image-container");
+    const counter = document.getElementById("count");
+    const video = document.getElementById("rick-video");
+
+    const soundFiles = [
+      "./kitty-meow.mp3",
+      "./kitty-meow2.mp3",
+      "./kitty-meow3.mp3"
+    ];
+
+    let touchCount = 0;
+
+    function getRandomInt(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function onCatClick(playSound) {
+      if (playSound) {
+        touchCount++;
+      }
+      counter.textContent = touchCount;
+
+      // Fixed bounce animation - only animate the counter, not the whole bar
+      counter.style.animation = "";
+      void counter.offsetWidth; // Force reflow
+      counter.style.animation = (counter.style.animationName === "bounce1" ? "bounce2 500ms" : "bounce1 500ms");
+
+      // reward messages
+      if (playSound) {
+        if (touchCount === 69) {
+          alert('Nice ! you can use code "cat69" for a 5 percent discount in the shop linked above');
+          return;
+        }
+        if (touchCount === 100) {
+          alert('Congrats ! you can use code "cat100" for a 10 percent discount in the shop linked above');
+          return;
+        }
+        if (touchCount === 101) {
+          video.style.display = "block";
+          video.play();
+          setTimeout(() => {
+            video.pause();
+            video.style.display = "none";
+          }, 20000);
+          return;
+        }
+      }
+
+      // play a random meow
+      if (playSound) {
+        const audio = new Audio(soundFiles[getRandomInt(0, soundFiles.length - 1)]);
+        audio.play().catch(() => {});
+      }
+
+      // Move the cat within entire viewport - with extra large safety margins for mobile
+      const isMobile = window.innerWidth <= 600;
+      const extraMargin = isMobile ? 120 : 80; // Even larger margin on mobile
+      const randomRotation = getRandomInt(0, 360);
+      const randomWidth = getRandomInt(100, isMobile ? 250 : 300); // Smaller max size on mobile
+      const imageRadius = (randomWidth * 2) / 2; // Doubled safety factor from 1.5 to 2
+
+      // Use viewport dimensions with mobile considerations
+      const vh = Math.min(window.innerHeight, window.screen.height);
+      const vw = Math.min(window.innerWidth, window.screen.width);
+
+      // Calculate boundaries for entire viewport with generous margins
+      const minTop = imageRadius + extraMargin;
+      const minLeft = imageRadius + extraMargin;
+      const maxTop = vh - imageRadius - extraMargin;
+      const maxLeft = vw - imageRadius - extraMargin;
+
+      // Ensure we don't get invalid ranges - fallback to center if screen too small
+      const safeTop = maxTop > minTop ? minTop : vh / 2;
+      const safeLeft = maxLeft > minLeft ? minLeft : vw / 2;
+      const safeMaxTop = maxTop > minTop ? maxTop : vh / 2;
+      const safeMaxLeft = maxLeft > minLeft ? maxLeft : vw / 2;
+
+      const randomTop = getRandomInt(safeTop, Math.max(safeTop, safeMaxTop));
+      const randomLeft = getRandomInt(safeLeft, Math.max(safeLeft, safeMaxLeft));
+
+      imageContainer.style.transform = `rotate(${randomRotation}deg)`;
+      imageContainer.style.top = `${randomTop}px`;
+      imageContainer.style.left = `${randomLeft}px`;
+      image.style.width = `${randomWidth}px`;
+    }
+
+    image.addEventListener("click", () => onCatClick(true));
+    // initial placement without sound
+    onCatClick(false);
+  </script>
+</body>
+</html>

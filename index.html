@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>JF's trash page</title>
+  <title>Grow the Cat! — jtingf.com</title>
 
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Comfortaa&display=swap" rel="stylesheet" />
@@ -34,6 +34,7 @@
       flex-direction: column;
       align-items: center;
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+      z-index: 20;
     }
 
     .nav-group {
@@ -88,61 +89,513 @@
       margin-right: 10px;
     }
 
-    #image-frame {
+    #lang-btn {
+      background: #555;
+      color: white;
+      border: none;
+      font-family: 'Comfortaa', sans-serif;
+      font-size: 14px;
+      font-weight: bold;
+      padding: 6px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.3s, transform 0.3s;
+    }
+
+    #lang-btn:hover { background: #777; transform: scale(1.05); }
+
+    /* ------- 3D stage ------- */
+    #stage {
       position: relative;
       flex-grow: 1;
-      height: 100%;
       width: 100%;
       overflow: hidden;
     }
 
-    #image-container {
-      position: fixed; /* Changed from absolute to fixed */
-      transition: transform 0.5s, top 0.5s, left 0.5s;
-      -webkit-tap-highlight-color: transparent;
-      user-select: none;
-      z-index: 10; /* Ensure cat appears above bottom bar */
-      pointer-events: none; /* Allow clicks to pass through container */
+    #stage canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      touch-action: none;
     }
 
-    #image {
-      width: 200px;
-      height: auto;
-      object-fit: contain;
-      outline: none;
-      transition: width 0.5s, height 0.5s, transform 0.2s;
+    #overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      color: #333;
+      font-size: 22px;
+      text-align: center;
+      padding: 20px;
+      pointer-events: none;
+      z-index: 45;
+    }
+
+    #overlay .paw {
+      font-size: 46px;
+      animation: pawwalk 1s infinite ease-in-out;
+    }
+
+    @keyframes pawwalk {
+      0%, 100% { transform: rotate(-15deg) scale(1); }
+      50% { transform: rotate(15deg) scale(1.15); }
+    }
+
+    #status {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      max-width: 70%;
+      background: rgba(0, 0, 0, 0.65);
+      color: #fff;
+      font-size: 13px;
+      padding: 6px 10px;
+      border-radius: 8px;
+      z-index: 25;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.5s;
+    }
+
+    #status.show { opacity: 1; }
+    #status.bad { background: rgba(180, 40, 40, 0.85); }
+
+    #map-attrib {
+      display: none;
+      position: absolute;
+      bottom: 2px;
+      right: 4px;
+      z-index: 24;
+      font-size: 10px;
+      color: rgba(40, 50, 55, 0.75);
+      background: rgba(255, 255, 255, 0.55);
+      padding: 1px 6px;
+      border-radius: 4px;
+      pointer-events: none;
+    }
+
+    /* ------- "wanna play?" prompt ------- */
+    #game-prompt, #lang-prompt, #art-warn {
+      position: absolute;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+      background: rgba(0, 0, 0, 0.25);
+    }
+
+    #game-prompt.show, #lang-prompt.show, #art-warn.show { display: flex; }
+
+    #game-prompt .card, #lang-prompt .card, #art-warn .card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 24px 28px;
+      max-width: 340px;
+      text-align: center;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+    }
+
+    #game-prompt h3, #lang-prompt h3, #art-warn h3 { margin: 0 0 6px; font-size: 22px; color: #222; }
+    #game-prompt p { margin: 0 0 18px; font-size: 14px; color: #667; }
+
+    #game-prompt button, #lang-prompt button, #art-warn button {
+      font-family: 'Comfortaa', sans-serif;
+      font-size: 16px;
+      font-weight: bold;
+      border: none;
+      border-radius: 10px;
+      padding: 10px 18px;
+      margin: 0 6px;
       cursor: pointer;
-      transform: translate(-50%, -50%);
-      pointer-events: auto; /* Re-enable clicks on the image itself */
+      transition: transform 0.15s;
     }
 
-    #image:hover {
-      filter: drop-shadow(0 0 10px #ffcc00);
-      transform: translate(-50%, -50%) scale(1.1) rotate(2deg);
+    #game-prompt button:hover, #lang-prompt button:hover, #art-warn button:hover { transform: scale(1.06); }
+    #btn-play, #btn-lang-en, #btn-lang-zh, #art-warn-yes { background: #00cfe8; color: white; }
+    #art-warn { z-index: 65; }
+    #art-warn p { margin: 0 0 18px; font-size: 14px; color: #667; }
+
+    .art-tile.affordable { border-color: #ffcc00; cursor: pointer; }
+    .reward-row.affordable { border-color: #ffcc00; }
+
+    .tut-pulse { animation: tutpulse 1.1s infinite; }
+    @keyframes tutpulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(0, 207, 232, 0.75); }
+      55% { box-shadow: 0 0 0 12px rgba(0, 207, 232, 0); }
     }
 
+    .reward-row {
+      background: #f2fbfd;
+      border: 2px solid #cdeef4;
+      border-radius: 10px;
+      padding: 8px 12px;
+      margin-top: 6px;
+      font-size: 13px;
+      color: #345;
+    }
+
+    .reward-row.locked { color: #9ab; font-style: italic; }
+
+    /* ------- golden fish event ------- */
+    #gold-fish {
+      position: absolute;
+      z-index: 33;
+      font-size: 44px;
+      cursor: pointer;
+      filter: drop-shadow(0 0 8px #ffd700) sepia(1) saturate(4) hue-rotate(-15deg) brightness(1.15);
+      animation: fishswim 8s linear forwards;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    @keyframes fishswim {
+      0%   { left: -60px;  transform: translateY(0)     scaleX(-1); }
+      25%  {               transform: translateY(-26px) scaleX(-1); }
+      50%  {               transform: translateY(10px)  scaleX(-1); }
+      75%  {               transform: translateY(-20px) scaleX(-1); }
+      100% { left: 105%;   transform: translateY(0)     scaleX(-1); }
+    }
+    #btn-later { background: #eef4f6; color: #667; }
+
+    #play-later-btn {
+      position: absolute;
+      bottom: 8px;
+      right: 8px;
+      z-index: 40;
+      display: none;
+      background: #00cfe8;
+      color: white;
+      border: none;
+      font-family: 'Comfortaa', sans-serif;
+      font-size: 14px;
+      font-weight: bold;
+      padding: 9px 14px;
+      border-radius: 10px;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    }
+
+    /* ------- pose toggle ------- */
+    #pose-buttons {
+      position: absolute;
+      bottom: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 40;
+      display: flex;
+      gap: 6px;
+    }
+
+    #pose-buttons button {
+      background: rgba(255,255,255,0.9);
+      border: 2px solid #cdeef4;
+      border-radius: 10px;
+      font-size: 18px;
+      padding: 6px 12px;
+      cursor: pointer;
+      transition: transform 0.15s, border-color 0.15s;
+    }
+
+    #pose-buttons button:hover:not(:disabled) { transform: scale(1.08); }
+    #pose-buttons button.active { border-color: #00cfe8; background: #e6fafd; }
+    #pose-buttons button:disabled { opacity: 0.4; cursor: default; }
+
+    /* Floating hearts + "+cm" popups */
+    .heart, .plus-cm {
+      position: fixed;
+      pointer-events: none;
+      z-index: 60;
+      animation: floatheart 1.2s ease-out forwards;
+    }
+
+    .heart { font-size: 26px; }
+
+    .plus-cm {
+      font-size: 20px;
+      font-weight: bold;
+      color: #00a8bd;
+      text-shadow: 0 1px 3px rgba(255,255,255,0.9);
+    }
+
+    @keyframes floatheart {
+      0%   { transform: translate(-50%, -50%) scale(0.4); opacity: 0; }
+      15%  { opacity: 1; }
+      100% { transform: translate(calc(-50% + var(--dx)), calc(-50% - 120px)) scale(1.2) rotate(var(--rot)); opacity: 0; }
+    }
+
+    /* ------- top-right game buttons ------- */
+    .game-btn {
+      background: #00cfe8;
+      color: white;
+      border: none;
+      font-family: 'Comfortaa', sans-serif;
+      font-size: 16px;
+      font-weight: bold;
+      padding: 10px 14px;
+      border-radius: 10px;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    }
+
+    #game-buttons {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      z-index: 40;
+      display: none;
+      gap: 8px;
+    }
+
+    body.gaming #game-buttons { display: flex; }
+
+    #reset-game-btn {
+      background: rgba(255,255,255,0.9);
+      color: #99a;
+      border: 2px solid #dde;
+      font-size: 14px;
+    }
+
+    #reset-game-btn.confirm {
+      background: #d9534f;
+      border-color: #d9534f;
+      color: white;
+    }
+
+    #shop-panel {
+      position: absolute;
+      top: 0;
+      right: 0;
+      height: 100%;
+      width: 290px;
+      max-width: 85vw;
+      background: rgba(255, 255, 255, 0.94);
+      box-shadow: -4px 0 14px rgba(0,0,0,0.15);
+      z-index: 41;
+      transform: translateX(105%);
+      transition: transform 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      box-sizing: border-box;
+    }
+
+    #shop-panel.open { transform: translateX(0); }
+
+    #shop-panel h2 {
+      margin: 12px 14px 6px;
+      font-size: 18px;
+      color: #222;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    #shop-close {
+      background: none;
+      border: none;
+      font-size: 18px;
+      cursor: pointer;
+      color: #99a;
+    }
+
+    #shop-items {
+      flex-grow: 1;
+      overflow-y: auto;
+      padding: 0 10px 10px;
+    }
+
+    .shop-item {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #f2fbfd;
+      border: 2px solid #cdeef4;
+      border-radius: 10px;
+      padding: 8px 10px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      font-family: 'Comfortaa', sans-serif;
+      text-align: left;
+      transition: transform 0.15s, border-color 0.15s;
+    }
+
+    .shop-item:hover:not(:disabled) {
+      transform: scale(1.02);
+      border-color: #00cfe8;
+    }
+
+    .shop-item:disabled { opacity: 0.45; cursor: default; }
+    .shop-item .emoji { font-size: 26px; }
+    .shop-item .info { flex-grow: 1; }
+    .shop-item .name { font-weight: bold; font-size: 14px; color: #222; }
+    .shop-item .desc { font-size: 11.5px; color: #557; }
+    .shop-item .cost { font-size: 12px; font-weight: bold; color: #00a8bd; white-space: nowrap; }
+    .shop-item .owned { font-size: 15px; font-weight: bold; color: #888; min-width: 24px; text-align: right; }
+
+    #shop-footer {
+      padding: 8px 14px;
+      font-size: 11px;
+      color: #999;
+      border-top: 1px solid #e4f2f5;
+    }
+
+    /* ------- Bottom HUD ------- */
     #bottom-bar {
       width: 100%;
       background-color: #333;
       color: white;
-      font-size: 28px;
       text-align: center;
-      padding: 14px 10px;
+      padding: 10px;
       box-sizing: border-box;
       flex-shrink: 0;
+      z-index: 20;
     }
 
-    #bottom-bar i {
-      margin-right: 8px;
-      color: white;
-    }
+    #size-line { font-size: 26px; }
+    #size-line i { margin-right: 8px; }
 
-    #count {
+    #size-value {
       display: inline-block;
+      font-weight: bold;
+      color: #ffcc00;
       transition: transform 0.3s ease;
     }
 
-    /* Fixed bounce animations - only animate the count, not the whole bar */
+    #compare-line { font-size: 14px; color: #bbb; margin-top: 2px; }
+    #rate-line { font-size: 13px; color: #8fd8e2; margin-top: 1px; display: none; }
+    body.gaming #rate-line { display: block; }
+
+    /* ------- growth gallery ------- */
+    #gallery-panel {
+      position: absolute;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 55;
+      background: rgba(0, 0, 0, 0.35);
+    }
+
+    #gallery-panel.show { display: flex; }
+
+    #gallery-panel .gcard {
+      background: #fff;
+      border-radius: 16px;
+      padding: 16px 18px;
+      max-width: 420px;
+      width: 90%;
+      max-height: 80%;
+      overflow-y: auto;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+    }
+
+    #gallery-panel h3 {
+      margin: 0 0 12px;
+      font-size: 18px;
+      color: #222;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    #gallery-close {
+      background: none;
+      border: none;
+      font-size: 18px;
+      cursor: pointer;
+      color: #99a;
+    }
+
+    #gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .art-tile {
+      aspect-ratio: 1;
+      border-radius: 10px;
+      border: 2px solid #cdeef4;
+      background: #f2fbfd;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      font-size: 11px;
+      color: #789;
+      cursor: default;
+      overflow: hidden;
+      position: relative;
+      transition: transform 0.15s;
+    }
+
+    .art-tile img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .art-tile.unlocked { cursor: pointer; border-color: #00cfe8; }
+    .art-tile.unlocked:hover { transform: scale(1.04); }
+    .art-tile .lock { font-size: 20px; }
+    .art-tile .tag {
+      position: absolute;
+      bottom: 3px;
+      right: 5px;
+      font-size: 10px;
+      font-weight: bold;
+      color: #fff;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+      z-index: 1;
+    }
+
+    #lightbox {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      background: rgba(0, 0, 0, 0.9);
+      cursor: pointer;
+    }
+
+    #lightbox.show { display: flex; }
+
+    #lightbox img {
+      max-width: 94%;
+      max-height: 94%;
+      border-radius: 8px;
+      box-shadow: 0 10px 50px rgba(0,0,0,0.6);
+    }
+
+    #unlock-toast {
+      position: absolute;
+      top: 14px;
+      left: 50%;
+      transform: translate(-50%, -80px);
+      z-index: 60;
+      background: #00cfe8;
+      color: white;
+      font-weight: bold;
+      font-size: 15px;
+      padding: 10px 18px;
+      border-radius: 12px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+      transition: transform 0.4s ease;
+      pointer-events: none;
+    }
+
+    #unlock-toast.show { transform: translate(-50%, 0); }
+
     @keyframes bounce1 {
       0%, 100% { transform: scale(1); }
       25% { transform: scale(1.2); }
@@ -156,155 +609,2208 @@
       75% { transform: scale(0.95); }
     }
 
-    /* Hidden video overlay */
-    #rick-video {
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
+    #nav-toggle {
       display: none;
-      z-index: 1000;
+      background: #555;
+      color: white;
+      border: none;
+      font-size: 18px;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
     }
 
     @media (max-width: 600px) {
-      .site-label {
-        font-size: 20px;
-      }
-
-      .nav-links a {
-        font-size: 14px;
-        padding: 6px 8px;
-      }
-
-      .shop-link {
-        font-size: 36px;
-        padding: 8px 14px;
-      }
-
-      #bottom-bar {
-        font-size: 20px;
-      }
+      .site-label { font-size: 20px; }
+      #nav-toggle { display: inline-block; }
+      .nav-links { display: none; }
+      .nav-links.open { display: flex; }
+      .nav-links a { font-size: 14px; padding: 6px 8px; }
+      .shop-link { font-size: 36px; padding: 8px 14px; }
+      #size-line { font-size: 20px; }
+      #overlay { font-size: 18px; }
     }
   </style>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/",
+      "@pixiv/three-vrm": "https://cdn.jsdelivr.net/npm/@pixiv/three-vrm@3.3.0/lib/three-vrm.module.min.js",
+      "@pixiv/three-vrm-animation": "https://cdn.jsdelivr.net/npm/@pixiv/three-vrm-animation@3.3.0/lib/three-vrm-animation.module.min.js"
+    }
+  }
+  </script>
 </head>
 <body>
   <div class="topbar">
     <div class="nav-group">
-      <div class="site-label">jtingf.com ! links&gt;&gt;</div>
-      <div class="nav-links">
+      <div class="site-label" id="site-label">jtingf.com ! links&gt;&gt;</div>
+      <button id="nav-toggle"><i class="fas fa-bars"></i></button>
+      <div class="nav-links" id="nav-links">
         <a href="https://x.com/JtingF" target="_blank"><i class="fab fa-twitter"></i> Twitter</a>
         <a href="https://t.me/JtingF" target="_blank"><i class="fab fa-telegram"></i> Telegram</a>
+        <a href="https://www.facebook.com/profile.php?id=61589526052058" target="_blank"><i class="fab fa-facebook"></i> Facebook</a>
         <a href="https://www.youtube.com/@jting-f3237" target="_blank"><i class="fab fa-youtube"></i> YouTube</a>
         <a href="https://www.patreon.com/JtingF" target="_blank"><i class="fab fa-patreon"></i> Patreon</a>
-        <a href="https://jtingf.shop" target="_blank" class="shop-link"><i class="fas fa-store"></i> Shop</a>
+        <a href="./portfolio.html"><i class="fas fa-palette"></i> <span id="nav-portfolio-text">Portfolio</span></a>
+        <a href="https://jtingf.shop" target="_blank" class="shop-link"><i class="fas fa-store"></i> <span id="nav-shop-text">Shop</span></a>
+        <button id="lang-btn" title="Language / 語言">🌐 EN</button>
       </div>
     </div>
   </div>
 
-  <div id="image-frame">
-    <!-- Rickroll video -->
-    <video id="rick-video" src="./rick.mp4" controls></video>
-  </div>
+  <div id="stage">
+    <div id="status"></div>
+    <div id="map-attrib">Imagery © Esri, Maxar, Earthstar Geographics</div>
+    <div id="overlay">
+      <div class="paw">🐾</div>
+      <div id="overlay-text">waking up the cat... 0%</div>
+    </div>
 
-  <!-- Move image container outside of image-frame so it can go over bottom bar -->
-  <div id="image-container">
-    <img id="image" src="./jayu.png" alt="PNG Cat" draggable="false"/>
+    <div id="art-warn">
+      <div class="card">
+        <h3 id="art-warn-title">🎨 heads up!</h3>
+        <p id="art-warn-body">SFW macro art ahead —<br>unlock if you want to see it!</p>
+        <button id="art-warn-yes">unlock!</button>
+        <button id="art-warn-no">not now</button>
+      </div>
+    </div>
+
+    <div id="lang-prompt">
+      <div class="card">
+        <h3>🌐 Language / 語言</h3>
+        <button id="btn-lang-en">English</button>
+        <button id="btn-lang-zh">繁體中文</button>
+      </div>
+    </div>
+
+    <div id="game-prompt">
+      <div class="card">
+        <h3 id="prompt-title">🐱 GROW THE CAT?</h3>
+        <p id="prompt-body">poke him to feed him.<br>he will not stop growing.</p>
+        <button id="btn-play">▶ let's grow!</button>
+        <button id="btn-later">maybe later</button>
+      </div>
+    </div>
+
+
+    <button id="play-later-btn">🎮 play grow the cat</button>
+
+    <div id="gallery-panel">
+      <div class="gcard">
+        <h3><span id="gallery-title">🎨 growth gallery</span> <button id="gallery-close">✕</button></h3>
+        <div id="gallery-grid"></div>
+        <h3 id="rewards-title" style="margin-top:14px;">🎁 rewards</h3>
+        <div id="rewards-list"></div>
+      </div>
+    </div>
+    <div id="lightbox"><img id="lightbox-img" alt="artwork" /></div>
+    <div id="unlock-toast"></div>
+
+    <div id="pose-buttons">
+      <button id="bgm-btn" title="music"></button>
+      <button id="meow-btn" title="deep meows as he grows"></button>
+      <button id="pose-idle" title="idle animation">💤</button>
+      <button id="pose-sit" title="sit">🪑</button>
+      <button id="pose-stand" title="stand">🧍</button>
+    </div>
+
+    <div id="game-buttons">
+      <button id="gallery-btn" class="game-btn">🖼️ <span id="gallery-badge"></span></button>
+      <button id="reset-game-btn" class="game-btn">↺ reset</button>
+      <button id="shop-toggle" class="game-btn">🛒 Feed Shop</button>
+    </div>
+
+    <div id="shop-panel">
+      <h2><span id="shop-title">🍣 Feed Shop</span> <button id="shop-close">✕</button></h2>
+      <div id="shop-items"></div>
+      <div id="shop-footer"><span id="shop-footer-text">spend cm to grow faster!</span></div>
+    </div>
   </div>
 
   <div id="bottom-bar">
-    <i class="fas fa-paw"></i>Times you touched cat: <span id="count">0</span>
+    <div id="size-line"><i class="fas fa-paw"></i><span id="size-prefix">poke the cat!</span> <span id="size-value"></span></div>
+    <div id="compare-line"></div>
+    <div id="rate-line"></div>
   </div>
 
-  <script>
-    const image = document.getElementById("image");
-    const imageContainer = document.getElementById("image-container");
-    const counter = document.getElementById("count");
-    const video = document.getElementById("rick-video");
+  <script type="module">
+    import * as THREE from 'three';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+    import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
+    import { VRMAnimationLoaderPlugin, createVRMAnimationClip } from '@pixiv/three-vrm-animation';
 
-    const soundFiles = [
-      "./kitty-meow.mp3",
-      "./kitty-meow2.mp3",
-      "./kitty-meow3.mp3"
+    // ============================================================
+    //  CONFIG — tweak these!
+    // ============================================================
+    const VRM_PATH = './character.vrm';
+    const HELLO_ANIM = './hello.vrma';       // played once on load (null = skip)
+    const IDLE_ANIM = './sit-idle.vrma';     // loops forever after
+    const SIT_ANIM = './sit-pose.vrma';      // 🪑 button (null / missing = code-made pose)
+    const STAND_ANIM = './stand-pose.vrma';  // 🧍 button (null / missing = code-made pose)
+    const IDLE_SPEED = 0.33;                 // idle playback speed (1 = original)
+    const BG_SKY = './sky.jpg';              // equirect sky: .jpg/.png or .hdr (missing = paw pattern)
+    const EYE_TRACKING = false;
+    const GROUND_MODE = 'satellite';         // 'satellite' = real imagery (Esri, free w/ attribution),
+                                             // 'map' = drawn map, 'plain' = blue disc
+    const MAP_LAT = 25.034, MAP_LON = 121.565; // where he grows! (default: Taipei 🇹🇼)
+    const SAT_MAX_Z = 19;                    // deepest satellite zoom (19 = ~0.3 m/px in cities)
+    const HELLO_SPEED = 1.5;                 // hello animation playback speed
+    const PLANET_SINK = 0.05;                // settle depth on the planet ball (x model height)
+    const GROUND_SINK = 0.025;               // settle depth on flat ground (x model height)
+    const BGM_FILE = './bgm.mp3';            // toggleable background music
+    const BGM_VOLUME = 0.5;
+    const PURR_FILE = './purr.mp3';          // played while rapid-clicking instead of meow spam
+    // deep meows: pitch is normal until DEEP_START, deepest at DEEP_END
+    const MEOW_DEEP_START_M = 10;            // metres
+    const MEOW_DEEP_END_M = 5000;            // 5 km
+    const MEOW_MIN_PITCH = 0.55;             // about an octave down
+    const HEAD_FOLLOW = true;
+
+    // --- game numbers ---
+    const START_SIZE = 30;                   // cm
+    const CLICK_BASE = 10;                   // cm per poke before upgrades
+    const COST_GROWTH = 1.15;
+
+    const SOUND_FILES = [
+      './kitty-meow.mp3',
+      './kitty-meow2.mp3',
+      './kitty-meow3.mp3'
+    ];
+    const POKE_EXPRESSIONS = ['happy', 'relaxed', 'fun', 'joy'];
+    // ============================================================
+
+    const isLocalDev = ['localhost', '127.0.0.1', ''].includes(location.hostname);
+    const isMobile = matchMedia('(pointer: coarse)').matches;
+    const fresh = (url) => isLocalDev ? `${url}?v=${Date.now()}` : url;
+
+    // ============================================================
+    //  GAME STATE
+    // ============================================================
+    const SHOP_ITEMS = [
+      { id: 'snack',    emoji: '🍤', name: 'Protein Snack',      nameZh: '蛋白點心',   type: 'click', power: 10,     baseCost: 100,      desc: '+10 cm per poke', descZh: '每戳 +10 cm' },
+      { id: 'spoon',    emoji: '🥄', name: 'Golden Spoon',       nameZh: '黃金湯匙',   type: 'click', power: 150,    baseCost: 2500,     desc: '+150 cm per poke', descZh: '每戳 +150 cm' },
+      { id: 'feeder',   emoji: '🍚', name: 'Auto Feeder',        nameZh: '自動餵食器', type: 'auto',  power: 1,      baseCost: 50,       desc: '1 cm/s', descZh: '每秒 1 cm' },
+      { id: 'truck',    emoji: '🚚', name: 'Feeding Truck',      nameZh: '餵食卡車',   type: 'auto',  power: 8,      baseCost: 500,      desc: '8 cm/s', descZh: '每秒 8 cm' },
+      { id: 'cannon',   emoji: '🐟', name: 'Fish Cannon',        nameZh: '魚魚大砲',   type: 'auto',  power: 47,     baseCost: 3000,     desc: '47 cm/s', descZh: '每秒 47 cm' },
+      { id: 'tanker',   emoji: '🥛', name: 'Milk Tanker',        nameZh: '牛奶罐車',   type: 'auto',  power: 260,    baseCost: 10000,    desc: '260 cm/s', descZh: '每秒 260 cm' },
+      { id: 'factory',  emoji: '🏭', name: 'Cat Food Factory',   nameZh: '貓食工廠',   type: 'auto',  power: 1400,   baseCost: 40000,    desc: '1.4k cm/s', descZh: '每秒 1.4k cm' },
+      { id: 'farm',     emoji: '🌿', name: 'Catnip Farm',        nameZh: '貓草農場',   type: 'auto',  power: 7800,   baseCost: 200000,   desc: '7.8k cm/s', descZh: '每秒 7.8k cm' },
+      { id: 'ray',      emoji: '🔬', name: 'Growth Ray',         nameZh: '成長射線',   type: 'auto',  power: 44000,  baseCost: 1600000,  desc: '44k cm/s', descZh: '每秒 44k cm' },
+      { id: 'elevator', emoji: '🛰️', name: 'Orbital Treat Drop', nameZh: '軌道零食空投', type: 'auto',  power: 260000, baseCost: 12000000, desc: '260k cm/s', descZh: '每秒 260k cm' }
     ];
 
-    let touchCount = 0;
+    const game = { size: START_SIZE, best: START_SIZE, owned: {}, artOwned: {}, codesOwned: {} };
+    SHOP_ITEMS.forEach(i => game.owned[i.id] = 0);
+    let gameActive = false;
 
-    function getRandomInt(min, max) {
-      return Math.floor(Math.random() * (max - min + 1)) + min;
+    const costOf = (item) => Math.ceil(item.baseCost * Math.pow(COST_GROWTH, game.owned[item.id]));
+    const clickPower = () => CLICK_BASE + SHOP_ITEMS
+      .filter(i => i.type === 'click')
+      .reduce((sum, i) => sum + i.power * game.owned[i.id], 0);
+    const cps = () => SHOP_ITEMS
+      .filter(i => i.type === 'auto')
+      .reduce((sum, i) => sum + i.power * game.owned[i.id], 0);
+
+    // ---------- save / load ----------
+    const SAVE_KEY = 'growcat-save';
+
+    function saveGame() {
+      try {
+        localStorage.setItem(SAVE_KEY, JSON.stringify({ size: game.size, best: game.best, owned: game.owned, artOwned: game.artOwned, codesOwned: game.codesOwned }));
+      } catch (e) { /* private mode etc. */ }
     }
 
-    function onCatClick(playSound) {
-      if (playSound) {
-        touchCount++;
-      }
-      counter.textContent = touchCount;
-
-      // Fixed bounce animation - only animate the counter, not the whole bar
-      counter.style.animation = "";
-      void counter.offsetWidth; // Force reflow
-      counter.style.animation = (counter.style.animationName === "bounce1" ? "bounce2 500ms" : "bounce1 500ms");
-
-      // reward messages
-      if (playSound) {
-        if (touchCount === 69) {
-          alert('Nice ! you can use code "cat69" for a 5 percent discount in the shop linked above');
-          return;
+    function loadGame() {
+      try {
+        const raw = localStorage.getItem(SAVE_KEY);
+        if (!raw) return;
+        const data = JSON.parse(raw);
+        if (typeof data.size === 'number' && data.size >= 0) game.size = data.size;
+        if (typeof data.best === 'number' && data.best >= game.size) game.best = data.best;
+        else game.best = Math.max(game.best, game.size);
+        if (data.artOwned) game.artOwned = data.artOwned;
+        if (data.codesOwned) game.codesOwned = data.codesOwned;
+        if (data.owned) {
+          SHOP_ITEMS.forEach(i => {
+            const n = data.owned[i.id];
+            if (Number.isInteger(n) && n >= 0) game.owned[i.id] = n;
+          });
         }
-        if (touchCount === 100) {
-          alert('Congrats ! you can use code "cat100" for a 10 percent discount in the shop linked above');
-          return;
-        }
-        if (touchCount === 101) {
-          video.style.display = "block";
-          video.play();
-          setTimeout(() => {
-            video.pause();
-            video.style.display = "none";
-          }, 20000);
-          return;
-        }
-      }
+        console.log('[cat] save loaded:', Math.round(game.size), 'cm');
+      } catch (e) { /* corrupted save — start fresh */ }
+    }
+    loadGame();
+    setInterval(() => { if (gameActive) saveGame(); }, 10000);
+    window.addEventListener('beforeunload', () => { if (gameActive) saveGame(); });
 
-      // play a random meow
-      if (playSound) {
-        const audio = new Audio(soundFiles[getRandomInt(0, soundFiles.length - 1)]);
-        audio.play().catch(() => {});
-      }
-
-      // Move the cat within entire viewport - with extra large safety margins for mobile
-      const isMobile = window.innerWidth <= 600;
-      const extraMargin = isMobile ? 120 : 80; // Even larger margin on mobile
-      const randomRotation = getRandomInt(0, 360);
-      const randomWidth = getRandomInt(100, isMobile ? 250 : 300); // Smaller max size on mobile
-      const imageRadius = (randomWidth * 2) / 2; // Doubled safety factor from 1.5 to 2
-
-      // Use viewport dimensions with mobile considerations
-      const vh = Math.min(window.innerHeight, window.screen.height);
-      const vw = Math.min(window.innerWidth, window.screen.width);
-
-      // Calculate boundaries for entire viewport with generous margins
-      const minTop = imageRadius + extraMargin;
-      const minLeft = imageRadius + extraMargin;
-      const maxTop = vh - imageRadius - extraMargin;
-      const maxLeft = vw - imageRadius - extraMargin;
-
-      // Ensure we don't get invalid ranges - fallback to center if screen too small
-      const safeTop = maxTop > minTop ? minTop : vh / 2;
-      const safeLeft = maxLeft > minLeft ? minLeft : vw / 2;
-      const safeMaxTop = maxTop > minTop ? maxTop : vh / 2;
-      const safeMaxLeft = maxLeft > minLeft ? maxLeft : vw / 2;
-
-      const randomTop = getRandomInt(safeTop, Math.max(safeTop, safeMaxTop));
-      const randomLeft = getRandomInt(safeLeft, Math.max(safeLeft, safeMaxLeft));
-
-      imageContainer.style.transform = `rotate(${randomRotation}deg)`;
-      imageContainer.style.top = `${randomTop}px`;
-      imageContainer.style.left = `${randomLeft}px`;
-      image.style.width = `${randomWidth}px`;
+    // ---------- formatting & comparisons ----------
+    function formatCm(cm) {
+      if (cm < 100) return `${cm.toFixed(0)} cm`;
+      if (cm < 100000) return `${(cm / 100).toFixed(cm < 10000 ? 2 : 1)} m`;
+      if (cm < 1e11) return `${(cm / 100000).toFixed(2)} km`;
+      if (cm < 1e14) return `${Math.round(cm / 1e5).toLocaleString()} km`;
+      return `${(cm / 9.461e17).toFixed(4)} ${t('lightYears')}`;
     }
 
-    image.addEventListener("click", () => onCatClick(true));
-    // initial placement without sound
-    onCatClick(false);
+    function formatCost(cm) {
+      if (cm < 1e5) return `${Math.ceil(cm).toLocaleString()} cm`;
+      return formatCm(cm);
+    }
+
+    // ---------- language (English / 繁體中文) ----------
+    let lang = 'en';
+    try { lang = localStorage.getItem('growcat-lang') || ''; } catch (e) {}
+
+    const STR = {
+      en: {
+        promptTitle: '🐱 GROW THE CAT?',
+        promptBody: 'poke him to feed him.<br>he will not stop growing.',
+        play: "▶ let's grow!", later: 'maybe later', playLater: '🎮 play grow the cat',
+        pokeCat: 'poke the cat!', catSize: 'Cat size:',
+        rate: (p, r) => `+${p} per poke${r ? ` · ${r}/s` : ''}`,
+        shopTitle: '🍣 Feed Shop', shopBtn: '🛒 Feed Shop', shopFooter: 'spend cm to grow faster!',
+        reset: '↺ reset', sure: 'sure?', costs: (c) => `costs ${c}`,
+        galleryTitle: '🎨 growth gallery', unlockFor: (l) => `unlock for ${l}`,
+        artWarnTitle: '🎨 heads up!', artWarnBody: 'SFW macro art ahead —<br>unlock if you want to see it!',
+        artWarnYes: 'unlock!', artWarnNo: 'not now',
+        rewardUnlockFor: (off, l) => `🎁 special reward — unlock for ${l}`,
+        artToast: (l) => `🎨 new artwork unlocked — ${l}! check the gallery`,
+        rewardsTitle: '🎁 rewards',
+        rewardRow: (code, off) => `code “${code}” — ${off} off in the shop!`,
+        rewardToast: (code, off) => `🎉 code “${code}” unlocked — ${off} off in the shop!`,
+        lightYears: 'light-years',
+        camHint: '🖐️ drag to look around · scroll / pinch to zoom',
+        goldFish: (x) => `🐟 golden fish! +${x}`,
+        navShop: 'Shop', navPortfolio: 'Portfolio', siteLabel: 'jtingf.com ! links>>',
+      },
+      zh: {
+        promptTitle: '🐱 養大貓貓？',
+        promptBody: '戳他就是餵他。<br>他會不停長大。',
+        play: '▶ 開始養！', later: '下次再說', playLater: '🎮 玩養大貓貓',
+        pokeCat: '戳戳貓貓！', catSize: '貓貓身高：',
+        rate: (p, r) => `每戳 +${p}${r ? ` · 每秒 ${r}` : ''}`,
+        shopTitle: '🍣 餵食商店', shopBtn: '🛒 餵食商店', shopFooter: '花掉公分讓他長更快！',
+        reset: '↺ 重置', sure: '確定？', costs: (c) => `價格 ${c}`,
+        galleryTitle: '🎨 成長畫廊', unlockFor: (l) => `花 ${l} 解鎖`,
+        artWarnTitle: '🎨 先說一聲！', artWarnBody: '前方是健全的巨大化藝術 —<br>想看再解鎖！',
+        artWarnYes: '解鎖！', artWarnNo: '先不要',
+        rewardUnlockFor: (off, l) => `🎁 特別獎勵 — 花 ${l} 解鎖`,
+        artToast: (l) => `🎨 解鎖新作品 — ${l}！快去畫廊看看`,
+        rewardsTitle: '🎁 獎勵',
+        rewardRow: (code, off) => `折扣碼「${code}」— 商店 ${off} 折扣！`,
+        rewardToast: (code, off) => `🎉 解鎖折扣碼「${code}」— 商店 ${off} 折扣！`,
+        lightYears: '光年',
+        camHint: '🖐️ 拖曳旋轉視角 · 滾輪或雙指縮放',
+        goldFish: (x) => `🐟 黃金魚魚！+${x}`,
+        navShop: '商店', navPortfolio: '作品集', siteLabel: 'jtingf.com ！連結>>',
+      }
+    };
+    const t = (key, ...args) => {
+      const v = STR[lang === 'zh' ? 'zh' : 'en'][key];
+      return typeof v === 'function' ? v(...args) : v;
+    };
+
+    const COMPARISONS = [
+      [30,      'the size of a house cat',           '一隻普通家貓的大小'],
+      [100,     'as big as a golden retriever',      '跟黃金獵犬一樣大'],
+      [180,     'as tall as a human',                '跟人一樣高'],
+      [280,     'as tall as an ostrich',             '跟鴕鳥一樣高'],
+      [550,     'taller than a giraffe! 🦒',         '比長頸鹿還高！🦒'],
+      [1300,    'bigger than a T-Rex! 🦖',           '比暴龍還大！🦖'],
+      [2500,    'as tall as a telephone pole',       '跟電線桿一樣高'],
+      [9300,    'as tall as the Statue of Liberty 🗽', '跟自由女神像一樣高 🗽'],
+      [33000,   'taller than the Eiffel Tower!',     '比艾菲爾鐵塔還高！'],
+      [82800,   'taller than the Burj Khalifa!',     '比哈里發塔還高！'],
+      [400000,  'poking through the clouds ☁️',      '頭頂穿過雲層 ☁️'],
+      [884900,  'taller than Mount Everest! 🏔️',     '比聖母峰還高！🏔️'],
+      [1e7,     'reaching into space! 🚀',           '伸進太空了！🚀'],
+      [3.47e8,  'bigger than the Moon! 🌕',          '比月球還大！🌕'],
+      [1.27e9,  'bigger than the Earth! 🌍',         '比地球還大！🌍'],
+      [1.39e11, 'bigger than the SUN ☀️',            '比太陽還大 ☀️'],
+      [9.46e17, 'a cat measured in light-years. why', '用光年計算的貓。為什麼'],
+    ];
+
+    function compareLabel(cm) {
+      const idx = lang === 'zh' ? 2 : 1;
+      let label = COMPARISONS[0][idx];
+      for (const row of COMPARISONS) {
+        if (cm >= row[0]) label = row[idx];
+      }
+      return label;
+    }
+
+    // ---------- HUD ----------
+    const sizePrefix = document.getElementById('size-prefix');
+    const sizeValue = document.getElementById('size-value');
+    const compareLine = document.getElementById('compare-line');
+    const rateLine = document.getElementById('rate-line');
+
+    function updateHUD() {
+      if (!gameActive) {
+        sizePrefix.textContent = t('pokeCat');
+        sizeValue.textContent = '';
+        compareLine.textContent = '';
+        return;
+      }
+      sizePrefix.textContent = t('catSize');
+      sizeValue.textContent = formatCm(game.size);
+      compareLine.textContent = compareLabel(game.size);
+      const r = cps();
+      rateLine.textContent = t('rate', formatCost(clickPower()), r > 0 ? formatCost(r) : '');
+    }
+
+    function bounceSize() {
+      if (isMobile) return; // forced reflow per tap janks phones
+      sizeValue.style.animation = '';
+      void sizeValue.offsetWidth;
+      sizeValue.style.animation =
+        (sizeValue.style.animationName === 'bounce1' ? 'bounce2 500ms' : 'bounce1 500ms');
+    }
+
+    // ---------- shop UI ----------
+    const shopPanel = document.getElementById('shop-panel');
+    const shopItemsEl = document.getElementById('shop-items');
+    document.getElementById('shop-toggle').addEventListener('click', () => shopPanel.classList.toggle('open'));
+    document.getElementById('shop-close').addEventListener('click', () => shopPanel.classList.remove('open'));
+
+    const itemButtons = {};
+    SHOP_ITEMS.forEach((item) => {
+      const btn = document.createElement('button');
+      btn.className = 'shop-item';
+      btn.innerHTML = `
+        <span class="emoji">${item.emoji}</span>
+        <span class="info">
+          <div class="name">${item.name}</div>
+          <div class="desc">${item.desc}</div>
+          <div class="cost"></div>
+        </span>
+        <span class="owned"></span>`;
+      btn.addEventListener('click', () => buy(item));
+      shopItemsEl.appendChild(btn);
+      itemButtons[item.id] = btn;
+    });
+
+    function refreshShop() {
+      SHOP_ITEMS.forEach((item) => {
+        const btn = itemButtons[item.id];
+        const cost = costOf(item);
+        btn.querySelector('.cost').textContent = t('costs', formatCost(cost));
+        btn.querySelector('.owned').textContent = game.owned[item.id] || '';
+        btn.disabled = game.size < cost;
+      });
+    }
+    setInterval(() => {
+      if (!gameActive) return;
+      refreshShop();
+      if (galleryPanel.classList.contains('show')) refreshGallery();
+    }, 500);
+
+    function buy(item) {
+      const cost = costOf(item);
+      if (game.size < cost) return;
+      game.size -= cost; // the cat shrinks a little... for the greater good
+      game.owned[item.id]++;
+      refreshShop();
+      updateHUD();
+      saveGame();
+    }
+
+    // reset: first click arms, second click within 3s wipes
+    const resetBtn = document.getElementById('reset-game-btn');
+    let resetArmed = false;
+    resetBtn.addEventListener('click', () => {
+      if (!resetArmed) {
+        resetArmed = true;
+        resetBtn.textContent = t('sure');
+        resetBtn.classList.add('confirm');
+        setTimeout(() => {
+          resetArmed = false;
+          resetBtn.textContent = t('reset');
+          resetBtn.classList.remove('confirm');
+        }, 3000);
+        return;
+      }
+      game.size = START_SIZE;
+      game.best = START_SIZE;
+      game.artOwned = {};
+      game.codesOwned = {};
+      refreshGallery();
+      SHOP_ITEMS.forEach(i => game.owned[i.id] = 0);
+      saveGame();
+      refreshShop();
+      updateHUD();
+      resetArmed = false;
+      resetBtn.textContent = t('reset');
+      resetBtn.classList.remove('confirm');
+    });
+
+    // ---------- play prompt flow ----------
+    const gamePrompt = document.getElementById('game-prompt');
+    const playLaterBtn = document.getElementById('play-later-btn');
+    let promptShown = false;
+
+    // ---------- language application & flow ----------
+    const langPrompt = document.getElementById('lang-prompt');
+
+    function applyLang() {
+      document.getElementById('prompt-title').textContent = t('promptTitle');
+      document.getElementById('prompt-body').innerHTML = t('promptBody');
+      document.getElementById('btn-play').textContent = t('play');
+      document.getElementById('btn-later').textContent = t('later');
+      playLaterBtn.textContent = t('playLater');
+      document.getElementById('shop-title').textContent = t('shopTitle');
+      document.getElementById('shop-footer-text').textContent = t('shopFooter');
+      document.getElementById('gallery-title').textContent = t('galleryTitle');
+      document.getElementById('rewards-title').textContent = t('rewardsTitle');
+      document.getElementById('site-label').textContent = t('siteLabel');
+      document.getElementById('nav-shop-text').textContent = t('navShop');
+      document.getElementById('nav-portfolio-text').textContent = t('navPortfolio');
+      document.getElementById('shop-toggle').textContent = t('shopBtn');
+      // the button shows what you'd switch TO, not what you're on
+      document.getElementById('lang-btn').textContent = lang === 'zh' ? '🌐 EN' : '🌐 中文';
+      if (!resetArmed) resetBtn.textContent = t('reset');
+      // shop item names & descriptions
+      SHOP_ITEMS.forEach((item) => {
+        const btn = itemButtons[item.id];
+        btn.querySelector('.name').textContent = (lang === 'zh' && item.nameZh) ? item.nameZh : item.name;
+        btn.querySelector('.desc').textContent = (lang === 'zh' && item.descZh) ? item.descZh : item.desc;
+      });
+      // warning card
+      document.getElementById('art-warn-title').textContent = t('artWarnTitle');
+      document.getElementById('art-warn-body').innerHTML = t('artWarnBody');
+      document.getElementById('art-warn-yes').textContent = t('artWarnYes');
+      document.getElementById('art-warn-no').textContent = t('artWarnNo');
+      // locked gallery tiles
+      ART_UNLOCKS.forEach((art, i) => {
+        const label = artTiles[i].querySelector('.grow-label');
+        if (label) label.textContent = t('unlockFor', art.label);
+      });
+      refreshRewards();
+      refreshShop();
+      updateHUD();
+    }
+
+    function setLang(l) {
+      lang = l;
+      try { localStorage.setItem('growcat-lang', l); } catch (e) {}
+      applyLang();
+    }
+
+    document.getElementById('btn-lang-en').addEventListener('click', () => {
+      setLang('en');
+      langPrompt.classList.remove('show');
+      gamePrompt.classList.add('show');
+    });
+    document.getElementById('btn-lang-zh').addEventListener('click', () => {
+      setLang('zh');
+      langPrompt.classList.remove('show');
+      gamePrompt.classList.add('show');
+    });
+    // quick toggle anytime from the banner
+    document.getElementById('lang-btn').addEventListener('click', () => {
+      setLang(lang === 'zh' ? 'en' : 'zh');
+    });
+
+    // mobile: banner links collapse behind a hamburger
+    document.getElementById('nav-toggle').addEventListener('click', () => {
+      document.getElementById('nav-links').classList.toggle('open');
+    });
+
+    function showPrompt() {
+      if (promptShown || gameActive) return;
+      promptShown = true;
+      if (!lang) {
+        langPrompt.classList.add('show'); // first visit: pick a language
+      } else {
+        gamePrompt.classList.add('show'); // returning: language remembered
+      }
+    }
+
+    function startGame() {
+      gameActive = true;
+      document.body.classList.add('gaming');
+      gamePrompt.classList.remove('show');
+      playLaterBtn.style.display = 'none';
+      updateHUD();
+      refreshShop();
+      maybeTutorial();
+      scheduleFish();
+    }
+
+    document.getElementById('btn-play').addEventListener('click', startGame);
+    document.getElementById('btn-later').addEventListener('click', () => {
+      gamePrompt.classList.remove('show');
+      playLaterBtn.style.display = 'block';
+    });
+    playLaterBtn.addEventListener('click', startGame);
+
+    // ---------- first-play highlights ----------
+    // shop & gallery buttons pulse until they've each been clicked once
+    // ---------- golden fish event ----------
+    // occasionally swims across the screen; catching it = a big growth burst
+    let fishTimer = null;
+
+    function scheduleFish() {
+      clearTimeout(fishTimer);
+      fishTimer = setTimeout(spawnFish, 45000 + Math.random() * 75000);
+    }
+
+    function spawnFish() {
+      if (!gameActive || document.hidden) { scheduleFish(); return; }
+      const fish = document.createElement('div');
+      fish.id = 'gold-fish';
+      fish.textContent = '🐟';
+      fish.style.top = `${15 + Math.random() * 45}%`;
+      stage.appendChild(fish);
+
+      const swimAway = setTimeout(() => fish.remove(), 8200);
+      fish.addEventListener('pointerdown', (e) => {
+        e.stopPropagation();
+        clearTimeout(swimAway);
+        // big burst: 15% of his current size, so it's always worth chasing
+        const gain = Math.ceil(Math.max(game.size * 0.15, clickPower() * 20));
+        game.size += gain;
+        bumpBest();
+        updateHUD();
+        bounceSize();
+        showToast(t('goldFish', formatCost(gain)));
+        spawnHearts(e.clientX, e.clientY);
+        spawnPlusCm(e.clientX, e.clientY, gain);
+        fish.remove();
+      }, { once: true });
+      scheduleFish();
+    }
+
+    function maybeTutorial() {
+      ['shop-toggle', 'gallery-btn'].forEach((id) => {
+        const key = `growcat-tut-${id}`;
+        let seen = false;
+        try { seen = localStorage.getItem(key) === '1'; } catch (e) {}
+        if (seen) return;
+        const btn = document.getElementById(id);
+        btn.classList.add('tut-pulse');
+        btn.addEventListener('click', () => {
+          btn.classList.remove('tut-pulse');
+          try { localStorage.setItem(key, '1'); } catch (e) {}
+        }, { once: true });
+      });
+      // one-time camera hint
+      let camSeen = false;
+      try { camSeen = localStorage.getItem('growcat-tut-cam') === '1'; } catch (e) {}
+      if (!camSeen) {
+        showToast(t('camHint'), 6500);
+        try { localStorage.setItem('growcat-tut-cam', '1'); } catch (e) {}
+      }
+    }
+
+    // ============================================================
+    //  3D SCENE
+    //  Design note: the CAT always renders at scale 1 and the world
+    //  scales down around him. Spring bone physics only behaves at
+    //  scale 1, and this also avoids float precision issues at
+    //  planetary sizes. "k" converts real metres -> view units.
+    // ============================================================
+    const stage = document.getElementById('stage');
+    const overlay = document.getElementById('overlay');
+    const overlayText = document.getElementById('overlay-text');
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(stage.clientWidth, stage.clientHeight);
+    stage.appendChild(renderer.domElement);
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(30, stage.clientWidth / stage.clientHeight, 0.05, 2000);
+
+    scene.add(new THREE.AmbientLight(0xffffff, 1.1));
+    const sun = new THREE.DirectionalLight(0xffffff, 1.6);
+    sun.position.set(1, 2, 3);
+    scene.add(sun);
+
+    // invisible sphere that guarantees a minimum tappable size on screen —
+    // when he's smaller than the reference human, the camera frames the
+    // human and the cat becomes a sliver that's brutal to hit on mobile
+    const hitProxy = new THREE.Mesh(
+      new THREE.SphereGeometry(1, 12, 8),
+      new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false })
+    );
+    scene.add(hitProxy);
+
+    const lookTarget = new THREE.Object3D();
+    scene.add(lookTarget);
+
+    const raycaster = new THREE.Raycaster();
+    const pointerNDC = new THREE.Vector2(0, 0);
+
+    let vrm = null;
+    let mixer = null;
+    let headBone = null;
+    let breathBone = null;
+    let breathBaseX = 0;
+    let headYawBase = 0, headPitchBase = 0;
+    let smoothYaw = 0, smoothPitch = 0;
+
+    let measured = false;
+    let modelHeight = 1.5;     // metres at scale 1 for the CURRENT pose
+    let modelMinY = 0;
+    let boingP = 0, boingV = 0; // squash spring: position & velocity
+    let expressionPulse = 0;
+    let activeExpression = null;
+    let currentCatHeight = Math.max(game.size, START_SIZE) / 100; // real metres, smoothed
+    let facing = 1;
+
+    // ---------- ground: zooming map + planet ball ----------
+    // Seeded random so the terrain looks the same on every visit
+    let seed = 1337;
+    const srand = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    const pickC = (arr) => arr[Math.floor(srand() * arr.length)];
+
+    function makeGroundTexture() {
+      const c = document.createElement('canvas');
+      c.width = c.height = 1024;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#aacf90';                       // base grass
+      ctx.fillRect(0, 0, 1024, 1024);
+      // farmland patches
+      for (let i = 0; i < 240; i++) {
+        ctx.fillStyle = pickC(['#9bc47f', '#b7db9e', '#c8dfa6', '#8db878', '#d8d0a0', '#c2cf8f']);
+        const w = 30 + srand() * 120, h = 30 + srand() * 120;
+        ctx.save();
+        ctx.translate(srand() * 1024, srand() * 1024);
+        ctx.rotate(srand() * 0.4 - 0.2);
+        ctx.fillRect(-w / 2, -h / 2, w, h);
+        ctx.restore();
+      }
+      // forests
+      for (let i = 0; i < 70; i++) {
+        ctx.fillStyle = pickC(['#6fa25e', '#5e9350', '#7bab68']);
+        const x = srand() * 1024, y = srand() * 1024, r = 18 + srand() * 55;
+        for (let b = 0; b < 7; b++) {
+          ctx.beginPath();
+          ctx.arc(x + (srand() - 0.5) * r * 1.6, y + (srand() - 0.5) * r * 1.6, r * (0.3 + srand() * 0.5), 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+      // lakes (keeping the blue!)
+      for (let i = 0; i < 14; i++) {
+        ctx.fillStyle = '#7ec4e0';
+        const x = srand() * 1024, y = srand() * 1024, r = 14 + srand() * 46;
+        for (let b = 0; b < 5; b++) {
+          ctx.beginPath();
+          ctx.arc(x + (srand() - 0.5) * r, y + (srand() - 0.5) * r, r * (0.4 + srand() * 0.5), 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+      // roads
+      ctx.strokeStyle = 'rgba(120,120,125,0.75)';
+      ctx.lineWidth = 3;
+      for (let i = 0; i < 9; i++) {
+        ctx.beginPath();
+        if (srand() < 0.5) {
+          const y = srand() * 1024;
+          ctx.moveTo(0, y);
+          ctx.bezierCurveTo(341, y + (srand() - 0.5) * 200, 683, y + (srand() - 0.5) * 200, 1024, y);
+        } else {
+          const x = srand() * 1024;
+          ctx.moveTo(x, 0);
+          ctx.bezierCurveTo(x + (srand() - 0.5) * 200, 341, x + (srand() - 0.5) * 200, 683, x, 1024);
+        }
+        ctx.stroke();
+      }
+      const tex = new THREE.CanvasTexture(c);
+      tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+      tex.center.set(0.5, 0.5); // zoom out from under the cat, not a corner
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+      return tex;
+    }
+
+    function makePlanetTexture() {
+      const c = document.createElement('canvas');
+      c.width = 1024; c.height = 512;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#5aa9d6';                       // ocean
+      ctx.fillRect(0, 0, 1024, 512);
+      // continents: big blobby landmasses
+      for (let i = 0; i < 9; i++) {
+        ctx.fillStyle = pickC(['#8db878', '#9bc47f', '#b0a878']);
+        const x = srand() * 1024, y = 80 + srand() * 352, r = 40 + srand() * 90;
+        for (let b = 0; b < 14; b++) {
+          ctx.beginPath();
+          ctx.arc(x + (srand() - 0.5) * r * 2.4, y + (srand() - 0.5) * r * 1.6, r * (0.25 + srand() * 0.5), 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+      // polar ice
+      ctx.fillStyle = '#eef6fa';
+      ctx.fillRect(0, 0, 1024, 26);
+      ctx.fillRect(0, 486, 1024, 26);
+      // soft clouds
+      ctx.fillStyle = 'rgba(255,255,255,0.35)';
+      for (let i = 0; i < 26; i++) {
+        ctx.beginPath();
+        ctx.ellipse(srand() * 1024, srand() * 512, 20 + srand() * 60, 6 + srand() * 12, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      const tex = new THREE.CanvasTexture(c);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      return tex;
+    }
+
+    const groundTex = GROUND_MODE !== 'plain' ? makeGroundTexture() : null;
+    const ground = new THREE.Mesh(
+      new THREE.CircleGeometry(1, 64),
+      groundTex
+        ? new THREE.MeshBasicMaterial({ map: groundTex })
+        : new THREE.MeshBasicMaterial({ color: 0xd8f2f7 })
+    );
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = -0.02;
+    scene.add(ground);
+
+    // the planet, for when he outgrows the flat map (unit sphere, scaled live)
+    const EARTH_R_M = 6.371e6;
+    const PLANET_PHASE_M = 4e5; // cat height (400 km) where flat ground becomes the ball
+    const planet = new THREE.Mesh(
+      new THREE.SphereGeometry(1, 48, 32),
+      new THREE.MeshBasicMaterial({ map: GROUND_MODE !== 'plain' ? makePlanetTexture() : null, color: GROUND_MODE !== 'plain' ? 0xffffff : 0x7ec4e0 })
+    );
+    planet.visible = false;
+    scene.add(planet);
+
+    // rotate the globe so MAP_LAT/LON sits at the very top, under his feet
+    // (derived from three.js SphereGeometry UV mapping for equirect textures)
+    const WORLD_UP = new THREE.Vector3(0, 1, 0);
+    const planetBaseQ = (() => {
+      const theta = (90 - MAP_LAT) * Math.PI / 180;       // polar angle
+      const a = (MAP_LON + 180) * Math.PI / 180;          // azimuth per UV layout
+      const p = new THREE.Vector3(
+        -Math.cos(a) * Math.sin(theta),
+        Math.cos(theta),
+        Math.sin(a) * Math.sin(theta)
+      ).normalize();
+      return new THREE.Quaternion().setFromUnitVectors(p, WORLD_UP);
+    })();
+    let planetSpin = 0;
+    let planetSink = PLANET_SINK; // live-tunable via the localhost slider
+    let groundSink = GROUND_SINK;
+
+    const shadow = new THREE.Mesh(
+      new THREE.CircleGeometry(1, 48),
+      new THREE.MeshBasicMaterial({ color: 0x9fc8d0, transparent: true, opacity: 0.5 })
+    );
+    shadow.rotation.x = -Math.PI / 2;
+    shadow.position.y = -0.01;
+    scene.add(shadow);
+
+    // ---------- real satellite imagery (Esri World Imagery, free w/ attribution) ----------
+    // Fetches a 4x4-tile patch centered on MAP_LAT/LON at whatever zoom level
+    // suits his current size, and re-fetches wider views as he grows — a real
+    // Google-Earth-style zoom out. Falls back to the drawn map if tiles fail.
+    const EARTH_CIRC = 40075016.686;
+    const cosLat = Math.cos(MAP_LAT * Math.PI / 180);
+    const tileURL = (z, x, y) =>
+      `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`;
+
+    const lon2tx = (lon, z) => (lon + 180) / 360 * 2 ** z;
+    const lat2ty = (lat, z) => {
+      const r = lat * Math.PI / 180;
+      return (1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2 * 2 ** z;
+    };
+
+    function loadTile(url) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = url;
+      });
+    }
+
+    const sat = {
+      enabled: GROUND_MODE === 'satellite',
+      cache: new Map(),   // z -> { tex, spanReal, avg }
+      current: null,
+      fetching: null,
+      anyLoaded: false
+    };
+
+    const satPlane = new THREE.Mesh(
+      new THREE.PlaneGeometry(1, 1),
+      new THREE.MeshBasicMaterial({ map: null })
+    );
+    satPlane.rotation.x = -Math.PI / 2;
+    satPlane.position.y = -0.015; // just above the fallback disc
+    satPlane.visible = false;
+    scene.add(satPlane);
+
+    async function buildSatLevel(z) {
+      const cx = lon2tx(MAP_LON, z), cy = lat2ty(MAP_LAT, z);
+      // close-up zooms get a double-resolution stitch for a sharper start
+      const size = z >= 17 ? 2048 : 1024;
+      const half = size / 2;
+      const reach = size / 256 / 2 + 1;
+      const c = document.createElement('canvas');
+      c.width = c.height = size;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#5a7a8a';
+      ctx.fillRect(0, 0, size, size);
+
+      const jobs = [];
+      const maxT = 2 ** z;
+      for (let tx = Math.floor(cx) - reach; tx <= Math.floor(cx) + reach; tx++) {
+        for (let ty = Math.floor(cy) - reach; ty <= Math.floor(cy) + reach; ty++) {
+          const px = (tx - cx) * 256 + half;
+          const py = (ty - cy) * 256 + half;
+          if (px < -256 || px > size || py < -256 || py > size) continue;
+          if (ty < 0 || ty >= maxT) continue;
+          const wx = ((tx % maxT) + maxT) % maxT; // wrap longitude
+          jobs.push(loadTile(tileURL(z, wx, ty)).then(img => ctx.drawImage(img, px, py)).catch(() => {}));
+        }
+      }
+      await Promise.allSettled(jobs);
+
+      // average color, used to tint the fallback disc so edges blend
+      const mini = document.createElement('canvas');
+      mini.width = mini.height = 1;
+      mini.getContext('2d').drawImage(c, 0, 0, 1, 1);
+      const px = mini.getContext('2d').getImageData(0, 0, 1, 1).data;
+
+      const tex = new THREE.CanvasTexture(c);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+      return {
+        tex,
+        spanReal: (size / 256) * EARTH_CIRC * cosLat / 2 ** z, // metres the canvas covers
+        avg: new THREE.Color(px[0] / 255, px[1] / 255, px[2] / 255)
+      };
+    }
+
+    async function requestSatZoom(z) {
+      if (sat.cache.has(z)) {
+        applySatLevel(z);
+        return;
+      }
+      if (sat.fetching === z) return;
+      sat.fetching = z;
+      try {
+        const level = await buildSatLevel(z);
+        sat.cache.set(z, level);
+        if (sat.fetching === z) applySatLevel(z);
+      } catch (e) {
+        console.warn('[cat] satellite tiles failed, drawn map stays:', e);
+      } finally {
+        if (sat.fetching === z) sat.fetching = null;
+      }
+    }
+
+    function applySatLevel(z) {
+      const level = sat.cache.get(z);
+      sat.current = { z, ...level };
+      satPlane.material.map = level.tex;
+      satPlane.material.needsUpdate = true;
+      // blend the surrounding disc into the imagery
+      ground.material.map = null;
+      ground.material.color.copy(level.avg);
+      ground.material.needsUpdate = true;
+      if (!sat.anyLoaded) {
+        sat.anyLoaded = true;
+        document.getElementById('map-attrib').style.display = 'block';
+      }
+    }
+
+    // real Earth for the ball phase: stitch the whole world at z=2 and
+    // remap Web Mercator rows into the equirect projection a sphere needs
+    async function buildEarthTexture() {
+      // z=3 world stitch: 2048x1024 equirect, 4x the pixels of the old z=2
+      const merc = document.createElement('canvas');
+      merc.width = merc.height = 2048;
+      const mctx = merc.getContext('2d');
+      mctx.fillStyle = '#5aa9d6';
+      mctx.fillRect(0, 0, 2048, 2048);
+      const jobs = [];
+      for (let x = 0; x < 8; x++) for (let y = 0; y < 8; y++) {
+        jobs.push(loadTile(tileURL(3, x, y)).then(img => mctx.drawImage(img, x * 256, y * 256)).catch(() => {}));
+      }
+      await Promise.allSettled(jobs);
+
+      const eq = document.createElement('canvas');
+      eq.width = 2048; eq.height = 1024;
+      const ectx = eq.getContext('2d');
+      ectx.fillStyle = '#eef6fa'; // polar ice where mercator has no data
+      ectx.fillRect(0, 0, 2048, 1024);
+      for (let row = 0; row < 1024; row++) {
+        const lat = 90 - (row + 0.5) / 1024 * 180;
+        if (Math.abs(lat) > 85) continue;
+        const srcY = lat2ty(lat, 3) / 8 * 2048;
+        ectx.drawImage(merc, 0, srcY, 2048, 1, 0, row, 2048, 1);
+      }
+      const tex = new THREE.CanvasTexture(eq);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+      return tex;
+    }
+
+    if (sat.enabled) {
+      buildEarthTexture().then((tex) => {
+        planet.material.map = tex;
+        planet.material.needsUpdate = true;
+        console.log('[cat] planet is wearing real Earth imagery');
+      }).catch(() => { /* procedural planet stays */ });
+    }
+
+    // ---------- optional sky (equirect .hdr or .jpg/.png) ----------
+    (async () => {
+      try {
+        let tex;
+        if (BG_SKY && BG_SKY.toLowerCase().endsWith('.hdr')) {
+          const { RGBELoader } = await import('three/addons/loaders/RGBELoader.js');
+          tex = await new RGBELoader().loadAsync(fresh(BG_SKY));
+          // HDR needs tone mapping or bright skies clip to pure white.
+          // If this washes out the cat's toon colors, use a .jpg sky instead.
+          renderer.toneMapping = THREE.ACESFilmicToneMapping;
+          renderer.toneMappingExposure = 1.0;
+        } else if (BG_SKY) {
+          tex = await new THREE.TextureLoader().loadAsync(fresh(BG_SKY));
+          tex.colorSpace = THREE.SRGBColorSpace;
+        } else return;
+        tex.mapping = THREE.EquirectangularReflectionMapping;
+        scene.background = tex;
+        console.log('[cat] sky loaded:', BG_SKY);
+      } catch (e) {
+        console.log(`[cat] no ${BG_SKY} found — keeping the paw pattern background`);
+      }
+    })();
+
+    // ============================================================
+    //  REFERENCE CROWDS — clusters that surround the cat, swapped
+    //  for bigger ones as he grows. All built in REAL metres.
+    // ============================================================
+    function stdMat(color) {
+      return new THREE.MeshStandardMaterial({ color, roughness: 0.9 });
+    }
+
+    function buildPerson(height = 1.7, color = 0x445566) {
+      const g = new THREE.Group();
+      const mat = stdMat(color);
+      const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.16, 0.62, 6, 12), mat);
+      body.position.y = 0.78;
+      const legL = new THREE.Mesh(new THREE.CapsuleGeometry(0.07, 0.36, 4, 8), mat);
+      legL.position.set(-0.09, 0.28, 0);
+      const legR = legL.clone();
+      legR.position.x = 0.09;
+      const headPivot = new THREE.Group();
+      headPivot.position.y = 1.28;
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.13, 16, 12), mat);
+      head.position.y = 0.13;
+      headPivot.add(head);
+      g.add(body, legL, legR, headPivot);
+      g.userData.headPivot = headPivot;
+      g.userData.eyeHeight = height * 0.92;
+      g.scale.setScalar(height / 1.55);
+      return g;
+    }
+
+    function buildGiraffe() {
+      const g = new THREE.Group();
+      const mat = stdMat(0xd9a34a);
+      const body = new THREE.Mesh(new THREE.BoxGeometry(2.0, 1.1, 0.9), mat);
+      body.position.y = 2.4;
+      for (const [x, z] of [[-0.7, -0.3], [-0.7, 0.3], [0.7, -0.3], [0.7, 0.3]]) {
+        const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.1, 1.9, 8), mat);
+        leg.position.set(x, 0.95, z);
+        g.add(leg);
+      }
+      const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.22, 2.6, 8), mat);
+      neck.position.set(0.95, 4.0, 0);
+      neck.rotation.z = -0.35;
+      const head = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.32, 0.32), mat);
+      head.position.set(1.55, 5.2, 0);
+      g.add(body, neck, head);
+      return g;
+    }
+
+    function buildPole() {
+      const g = new THREE.Group();
+      const mat = stdMat(0x8a6a4a);
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.22, 12, 10), mat);
+      pole.position.y = 6;
+      const bar = new THREE.Mesh(new THREE.BoxGeometry(3, 0.2, 0.2), mat);
+      bar.position.y = 11;
+      g.add(pole, bar);
+      return g;
+    }
+
+    function buildBuilding(w, h, color) {
+      const g = new THREE.Group();
+      const tower = new THREE.Mesh(new THREE.BoxGeometry(w, h, w), stdMat(color));
+      tower.position.y = h / 2;
+      g.add(tower);
+      return g;
+    }
+
+    function buildSkyscraper() {
+      const g = buildBuilding(28, 150, 0x9db8c8);
+      const top = new THREE.Mesh(new THREE.BoxGeometry(16, 14, 16), stdMat(0x8aa8ba));
+      top.position.y = 157;
+      const spire = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 1.2, 24, 8), stdMat(0x778899));
+      spire.position.y = 176;
+      g.add(top, spire);
+      return g;
+    }
+
+    function buildMountain(h = 8800) {
+      const g = new THREE.Group();
+      const rock = new THREE.Mesh(new THREE.ConeGeometry(h * 0.75, h, 7), stdMat(0x8b8f96));
+      rock.position.y = h / 2;
+      const snow = new THREE.Mesh(new THREE.ConeGeometry(h * 0.18, h * 0.25, 7), stdMat(0xf4f8fb));
+      snow.position.y = h * 0.875;
+      g.add(rock, snow);
+      return g;
+    }
+
+    function buildSphere(radius, color, basic = false) {
+      const g = new THREE.Group();
+      const mat = basic ? new THREE.MeshBasicMaterial({ color }) : stdMat(color);
+      const ball = new THREE.Mesh(new THREE.SphereGeometry(radius, 32, 24), mat);
+      ball.position.y = radius;
+      g.add(ball);
+      return g;
+    }
+
+    // Scatter helper: place n copies from builder around a ring.
+    // Each child remembers its direction + preferred distance so the
+    // per-frame layout can push it out of the way of the growing cat.
+    function scatter(cluster, builder, n, minDist, maxDist, faceCenter = true) {
+      for (let i = 0; i < n; i++) {
+        const child = builder();
+        const angle = (i / n) * Math.PI * 2 + Math.random() * 0.7;
+        const dist = minDist + Math.random() * (maxDist - minDist);
+        child.userData.dir = new THREE.Vector3(Math.sin(angle), 0, Math.cos(angle));
+        child.userData.dist = dist;
+        if (faceCenter) child.userData.faceCenter = true;
+        cluster.add(child);
+      }
+    }
+
+    const REFS = [
+      {
+        name: 'people', height: 1.7, clearance: 0.6,
+        build() {
+          const c = new THREE.Group();
+          scatter(c, () => buildPerson(1.55 + Math.random() * 0.3,
+            [0x445566, 0x6b4f3f, 0x3f5e4a, 0x54466b][Math.floor(Math.random() * 4)]),
+            8, 2.2, 5);
+          return c;
+        }
+      },
+      {
+        name: 'giraffes', height: 5.5, clearance: 2.5,
+        build() {
+          const c = new THREE.Group();
+          scatter(c, buildGiraffe, 3, 6, 11);
+          scatter(c, () => buildPerson(1.6 + Math.random() * 0.25), 5, 3, 7);
+          return c;
+        }
+      },
+      {
+        name: 'poles', height: 12, clearance: 2,
+        build() {
+          const c = new THREE.Group();
+          scatter(c, buildPole, 4, 10, 18, false);
+          scatter(c, buildGiraffe, 2, 8, 14);
+          scatter(c, () => buildPerson(1.6 + Math.random() * 0.25), 6, 5, 12);
+          return c;
+        }
+      },
+      {
+        name: 'city', height: 188, clearance: 25,
+        build() {
+          const c = new THREE.Group();
+          scatter(c, () => buildBuilding(
+            14 + Math.random() * 20,
+            50 + Math.random() * 110,
+            [0x9db8c8, 0xb8a998, 0x8fa0ad, 0xc0b8ac][Math.floor(Math.random() * 4)]),
+            9, 120, 320, false);
+          const hero = buildSkyscraper();
+          hero.userData.dir = new THREE.Vector3(1, 0, 0.2).normalize();
+          hero.userData.dist = 160;
+          c.add(hero);
+          return c;
+        }
+      },
+      {
+        name: 'mountains', height: 8800, clearance: 6000,
+        build() {
+          const c = new THREE.Group();
+          scatter(c, () => buildMountain(4500 + Math.random() * 4300), 4, 14000, 26000, false);
+          return c;
+        }
+      },
+      {
+        name: 'moon', height: 3.474e6, clearance: 1.8e6,
+        build() {
+          const c = new THREE.Group();
+          const m = buildSphere(1.737e6, 0xbfc3c9);
+          m.userData.dir = new THREE.Vector3(1, 0, 0);
+          m.userData.dist = 4e6;
+          c.add(m);
+          return c;
+        }
+      },
+      {
+        name: 'sun', height: 1.392e9, clearance: 7.5e8,
+        build() {
+          const c = new THREE.Group();
+          const s = buildSphere(6.96e8, 0xffcc44, true);
+          s.userData.dir = new THREE.Vector3(1, 0, 0);
+          s.userData.dist = 1.6e9;
+          c.add(s);
+          return c;
+        }
+      }
+    ];
+
+    let refIndex = 0;
+    let refCluster = REFS[0].build();
+    scene.add(refCluster);
+
+    function pickRef(catHeight) {
+      let best = 0;
+      for (let i = 0; i < REFS.length; i++) {
+        if (REFS[i].height <= catHeight * 0.85) best = i;
+      }
+      return best;
+    }
+
+    function swapRef(i) {
+      scene.remove(refCluster);
+      refCluster.traverse(o => { o.geometry?.dispose(); o.material?.dispose(); });
+      refIndex = i;
+      refCluster = REFS[i].build();
+      scene.add(refCluster);
+      console.log('[cat] size reference is now:', REFS[i].name);
+    }
+
+    // ---------- orbit camera + zoom ----------
+    const orbit = {
+      center: new THREE.Vector3(0, 1, 0),
+      radius: 4,
+      theta: 0,
+      phi: Math.PI / 2,
+      userZoom: 1
+    };
+
+    function updateCameraFromOrbit() {
+      const r = orbit.radius * orbit.userZoom;
+      const sinPhi = Math.sin(orbit.phi);
+      camera.position.set(
+        orbit.center.x + r * sinPhi * Math.sin(orbit.theta),
+        orbit.center.y + r * Math.cos(orbit.phi),
+        orbit.center.z + r * sinPhi * Math.cos(orbit.theta)
+      );
+      camera.lookAt(orbit.center);
+      camera.near = Math.max(r * 0.005, 0.01);
+      camera.far = Math.max(r * 80, 500);
+      camera.updateProjectionMatrix();
+    }
+
+    // ---------- load the VRM ----------
+    const loader = new GLTFLoader();
+    loader.register((parser) => new VRMLoaderPlugin(parser));
+
+    loader.load(
+      fresh(VRM_PATH),
+      (gltf) => {
+        vrm = gltf.userData.vrm;
+
+        // Make VRM 0.x models face the same way as VRM 1.0 (towards camera)
+        VRMUtils.rotateVRM0(vrm);
+        // NOTE: no skeleton "optimization" calls (combineSkeletons /
+        // removeUnnecessaryJoints) — they corrupt the skinning on some rigs.
+        scene.add(vrm.scene);
+        vrm.scene.updateWorldMatrix(true, true);
+
+        facing = detectFacing(vrm);
+        console.log('[cat] rig facing detected:', facing === 1 ? 'VRM 1.0 style' : 'VRM 0.x style');
+
+        // SPRING BONE FIX: simulate hair/tail physics relative to the model
+        // itself instead of world space. Without this, the constant growth
+        // scaling and the squash "boing" read to the physics as violent
+        // whole-body motion, dragging everything sideways.
+        if (vrm.springBoneManager) {
+          for (const joint of vrm.springBoneManager.joints) {
+            if ('center' in joint) joint.center = vrm.scene;
+          }
+          vrm.springBoneManager.reset?.();
+        }
+
+        if (EYE_TRACKING && vrm.lookAt) vrm.lookAt.target = lookTarget;
+        headBone = vrm.humanoid?.getNormalizedBoneNode('head') ?? null;
+        breathBone = vrm.humanoid?.getNormalizedBoneNode('chest')
+                  ?? vrm.humanoid?.getNormalizedBoneNode('spine') ?? null;
+
+        loadAnimations();
+      },
+      (progress) => {
+        if (progress.total > 0) {
+          overlayText.textContent = `waking up the cat... ${Math.round(100 * progress.loaded / progress.total)}%`;
+        }
+      },
+      (error) => {
+        console.error(error);
+        overlay.querySelector('.paw').textContent = '😿';
+        overlayText.innerHTML =
+          `couldn't find <b>${VRM_PATH}</b><br>put your .vrm file next to this page and refresh!`;
+      }
+    );
+
+    // ---------- animations (.vrma) ----------
+    const statusEl = document.getElementById('status');
+
+    function setStatus(msg, bad = false, stay = false) {
+      statusEl.textContent = msg;
+      statusEl.className = 'show' + (bad ? ' bad' : '');
+      if (!stay) setTimeout(() => statusEl.classList.remove('show'), 8000);
+    }
+
+    function loadVrma(path) {
+      if (!path) return Promise.reject(new Error('disabled'));
+      const animLoader = new GLTFLoader();
+      animLoader.register((parser) => new VRMAnimationLoaderPlugin(parser));
+      return animLoader.loadAsync(fresh(path)).then((gltf) => {
+        const vrmAnim = gltf.userData.vrmAnimations?.[0];
+        if (!vrmAnim) {
+          const plain = gltf.animations?.length ?? 0;
+          throw new Error(plain > 0
+            ? `has ${plain} plain glTF animation(s) but no VRMA data`
+            : 'contains no VRM animation');
+        }
+        return createVRMAnimationClip(vrmAnim, vrm);
+      });
+    }
+
+    function clipMovesHead(clip) {
+      return !!headBone && clip.tracks.some(
+        (track) => track.name.startsWith(headBone.name + '.')
+      );
+    }
+
+    // animMode: 'hello' | 'idle' | 'sit' | 'stand'
+    let animMode = 'idle';
+    let helloAction = null;
+    const modeActions = { idle: null, sit: null, stand: null };  // vrma-driven
+    const modeClips = { idle: null, sit: null, stand: null };
+    let currentModeIsClip = false;
+
+    async function loadAnimations() {
+      const springJoints = vrm.springBoneManager?.joints?.size ?? 0;
+      console.log(`[cat] spring bones: ${springJoints} joints ${springJoints ? '(physics on)' : '(none defined in this model)'}`);
+
+      const [helloR, idleR, sitR, standR] = await Promise.allSettled([
+        loadVrma(HELLO_ANIM),
+        loadVrma(IDLE_ANIM),
+        loadVrma(SIT_ANIM),
+        loadVrma(STAND_ANIM)
+      ]);
+
+      const errs = [];
+      for (const [res, path] of [[helloR, HELLO_ANIM], [idleR, IDLE_ANIM], [sitR, SIT_ANIM], [standR, STAND_ANIM]]) {
+        if (res.status === 'rejected' && res.reason?.message !== 'disabled') {
+          console.warn(`[cat] ${path} failed:`, res.reason?.message ?? res.reason);
+          errs.push(`✗ ${path}: ${res.reason?.message ?? res.reason}`);
+        }
+      }
+
+      const helloClip = helloR.status === 'fulfilled' ? helloR.value : null;
+      modeClips.idle = idleR.status === 'fulfilled' ? idleR.value : null;
+      modeClips.sit = sitR.status === 'fulfilled' ? sitR.value : null;
+      modeClips.stand = standR.status === 'fulfilled' ? standR.value : null;
+
+      mixer = new THREE.AnimationMixer(vrm.scene);
+      mixer.addEventListener('finished', onPoseClipFinished);
+
+      if (modeClips.idle) {
+        modeActions.idle = mixer.clipAction(modeClips.idle);
+        modeActions.idle.timeScale = IDLE_SPEED;
+      } else {
+        document.getElementById('pose-idle').disabled = true;
+      }
+      if (modeClips.sit) modeActions.sit = mixer.clipAction(modeClips.sit);
+      if (modeClips.stand) modeActions.stand = mixer.clipAction(modeClips.stand);
+
+      const statusBits = [];
+      if (helloClip) statusBits.push(`hello ✓`);
+      if (modeClips.idle) statusBits.push('idle ✓');
+      statusBits.push(`sit ${modeClips.sit ? '✓' : 'code'}`);
+      statusBits.push(`stand ${modeClips.stand ? '✓' : 'code'}`);
+
+      if (helloClip) {
+        animMode = 'hello';
+        currentModeIsClip = true;
+        helloAction = mixer.clipAction(helloClip);
+        helloAction.timeScale = HELLO_SPEED;
+        helloAction.setLoop(THREE.LoopOnce);
+        helloAction.clampWhenFinished = true;
+        headAnimatedNow = clipMovesHead(helloClip);
+        helloAction.play();
+
+        mixer.addEventListener('finished', (e) => {
+          if (e.action !== helloAction) return;
+          if (animMode === 'hello') setAnimMode(modeActions.idle ? 'idle' : 'sit');
+          showPrompt();
+        });
+      } else {
+        setAnimMode(modeActions.idle ? 'idle' : 'sit');
+        setTimeout(showPrompt, 1200);
+      }
+
+      setStatus(`${statusBits.join(' · ')}${errs.length ? ' | ' + errs.join(' | ') : ''}`, errs.length > 0);
+      mixer.update(0);
+      if (headBone) {
+        headYawBase = headBone.rotation.y;
+        headPitchBase = headBone.rotation.x;
+      }
+      finishSetup();
+      if (isLocalDev && modeActions.idle) showSpeedSlider();
+    }
+
+    let headAnimatedNow = false;
+
+    function showSpeedSlider() {
+      const box = document.createElement('div');
+      box.style.cssText = 'position:absolute;bottom:8px;left:8px;z-index:25;background:rgba(0,0,0,0.65);color:#fff;font-size:13px;padding:8px 12px;border-radius:8px;display:flex;flex-direction:column;gap:6px;';
+      box.innerHTML = `
+        <div style="display:flex;gap:8px;align-items:center;">idle speed
+          <input id="dev-idle" type="range" min="0.1" max="1.5" step="0.01" value="${IDLE_SPEED}" style="width:110px"> <span>${IDLE_SPEED}</span></div>
+        <div style="display:flex;gap:8px;align-items:center;">planet sink
+          <input id="dev-sink" type="range" min="0" max="0.25" step="0.005" value="${PLANET_SINK}" style="width:110px"> <span>${PLANET_SINK}</span></div>
+        <div style="display:flex;gap:8px;align-items:center;">ground sink
+          <input id="dev-gsink" type="range" min="0" max="0.25" step="0.005" value="${GROUND_SINK}" style="width:110px"> <span>${GROUND_SINK}</span></div>`;
+      const idle = box.querySelector('#dev-idle');
+      idle.addEventListener('input', () => {
+        modeActions.idle.timeScale = parseFloat(idle.value);
+        idle.nextElementSibling.textContent = idle.value;
+      });
+      const sink = box.querySelector('#dev-sink');
+      sink.addEventListener('input', () => {
+        planetSink = parseFloat(sink.value);
+        sink.nextElementSibling.textContent = sink.value;
+      });
+      const gsink = box.querySelector('#dev-gsink');
+      gsink.addEventListener('input', () => {
+        groundSink = parseFloat(gsink.value);
+        gsink.nextElementSibling.textContent = gsink.value;
+      });
+      stage.appendChild(box);
+    }
+
+    // Measure the model at SCALE 1 for the current pose. The cat always
+    // renders at scale 1 anyway; this keeps the size counter honest.
+    function measureModel() {
+      const prevScale = vrm.scene.scale.clone();
+      vrm.scene.scale.set(1, 1, 1);
+      vrm.scene.position.y = 0;
+      vrm.humanoid?.update();
+      vrm.scene.updateWorldMatrix(true, true);
+      const box = new THREE.Box3().setFromObject(vrm.scene);
+      modelHeight = Math.max(box.getSize(new THREE.Vector3()).y, 0.1);
+      modelMinY = box.min.y;
+      vrm.scene.scale.copy(prevScale);
+      measured = true;
+    }
+
+    function finishSetup() {
+      measureModel();
+      vrm.springBoneManager?.reset?.();
+      updateHUD();
+      refreshShop();
+      overlay.style.display = 'none';
+    }
+
+    // ---------- poses & mode switching ----------
+    const POSE = {
+      thighForward: 1.55,
+      thighSpread:  0.18,
+      kneeBend:     1.45,
+      armDown:      1.15,
+      elbowBend:    0.2,
+      slouch:       0.06,
+      headTilt:     0.03
+    };
+
+    function detectFacing(vrm) {
+      const left = vrm.humanoid?.getNormalizedBoneNode('leftUpperArm');
+      const right = vrm.humanoid?.getNormalizedBoneNode('rightUpperArm');
+      if (!left || !right) return 1;
+      const lp = vrm.scene.worldToLocal(left.getWorldPosition(new THREE.Vector3()));
+      const rp = vrm.scene.worldToLocal(right.getWorldPosition(new THREE.Vector3()));
+      return lp.x > rp.x ? 1 : -1;
+    }
+
+    const POSED_BONES = [
+      'leftUpperLeg', 'rightUpperLeg', 'leftLowerLeg', 'rightLowerLeg',
+      'leftUpperArm', 'rightUpperArm', 'leftLowerArm', 'rightLowerArm',
+      'spine', 'chest', 'neck', 'head'
+    ];
+
+    function clearPose() {
+      POSED_BONES.forEach((name) => {
+        const b = vrm.humanoid?.getNormalizedBoneNode(name);
+        if (b) b.rotation.set(0, 0, 0);
+      });
+    }
+
+    function applySittingPose() {
+      const f = facing;
+      const set = (name, x, y, z) => {
+        const node = vrm.humanoid?.getNormalizedBoneNode(name);
+        if (node) node.rotation.set(x, y, z);
+      };
+      set('leftUpperLeg',  -POSE.thighForward * f, 0,  POSE.thighSpread * f);
+      set('rightUpperLeg', -POSE.thighForward * f, 0, -POSE.thighSpread * f);
+      set('leftLowerLeg',  POSE.kneeBend * f, 0, 0);
+      set('rightLowerLeg', POSE.kneeBend * f, 0, 0);
+      set('leftUpperArm',  0, 0, -POSE.armDown * f);
+      set('rightUpperArm', 0, 0,  POSE.armDown * f);
+      set('leftLowerArm',  0, 0, -POSE.elbowBend * f);
+      set('rightLowerArm', 0, 0,  POSE.elbowBend * f);
+      set('spine', POSE.slouch * f, 0, 0);
+      set('head',  -0.04 * f, 0, POSE.headTilt);
+    }
+
+    function applyStandingPose() {
+      const f = facing;
+      const set = (name, x, y, z) => {
+        const node = vrm.humanoid?.getNormalizedBoneNode(name);
+        if (node) node.rotation.set(x, y, z);
+      };
+      set('leftUpperArm',  0, 0, -POSE.armDown * 0.95 * f);
+      set('rightUpperArm', 0, 0,  POSE.armDown * 0.95 * f);
+      set('leftLowerArm',  0, 0, -0.12 * f);
+      set('rightLowerArm', 0, 0,  0.12 * f);
+      set('head', 0, 0, POSE.headTilt);
+    }
+
+    let poseSettled = false; // true once a sit/stand pose is held and bases are sampled
+    let blinkTimer = 3;
+    // our own per-frame additions, tracked so base sampling can strip them out
+    let lastHeadOffY = 0, lastHeadOffX = 0, lastBreathOff = 0;
+
+    function settlePose() {
+      if (poseSettled) return; // three.js may re-fire 'finished' on clamped
+                               // actions — resampling repeatedly corkscrews
+                               // the head as bases absorb our own offsets
+      if (breathBone) breathBaseX = breathBone.rotation.x - lastBreathOff;
+      if (headBone) {
+        headYawBase = headBone.rotation.y - lastHeadOffY;
+        headPitchBase = headBone.rotation.x - lastHeadOffX;
+      }
+      measureModel();
+      vrm.springBoneManager?.reset?.();
+      poseSettled = true;
+    }
+
+    // when a sit/stand pose clip reaches its final frame, settle on it
+    function onPoseClipFinished(e) {
+      if ((animMode === 'sit' || animMode === 'stand') && e.action === modeActions[animMode]) {
+        settlePose();
+      }
+    }
+
+    function setAnimMode(mode) {
+      if (!vrm) return;
+      // strip our live head-follow / breathing offsets off the bones first,
+      // so every sample below reads pure pose values
+      if (headBone) {
+        headBone.rotation.y -= lastHeadOffY;
+        headBone.rotation.x -= lastHeadOffX;
+      }
+      if (breathBone) breathBone.rotation.x -= lastBreathOff;
+      lastHeadOffY = lastHeadOffX = lastBreathOff = 0;
+
+      animMode = mode;
+      poseSettled = false;
+      mixer?.stopAllAction();
+      clearPose();
+
+      const action = modeActions[mode];
+      if (action && mode === 'idle') {
+        // looping idle from .vrma
+        currentModeIsClip = true;
+        action.reset().setLoop(THREE.LoopRepeat, Infinity).play();
+        mixer?.update(0);
+        headAnimatedNow = clipMovesHead(modeClips[mode]);
+      } else if (action) {
+        // sit / stand from .vrma: the LAST frame of the file is the pose.
+        // Jump straight to it and hold (works for 1-frame poses and long
+        // files alike — no waiting for playback, breathing starts at once).
+        currentModeIsClip = true;
+        const clip = modeClips[mode];
+        action.reset().setLoop(THREE.LoopOnce, 1);
+        action.clampWhenFinished = true;
+        action.play();
+        action.time = clip.duration;
+        mixer?.update(0);
+        settlePose();
+        headAnimatedNow = false; // sit/stand head-follow is always absolute
+      } else {
+        // fall back to the code-made pose
+        currentModeIsClip = false;
+        (mode === 'stand' ? applyStandingPose : applySittingPose)();
+        headAnimatedNow = false;
+        if (breathBone) breathBaseX = breathBone.rotation.x;
+        poseSettled = true;
+      }
+
+      vrm.humanoid?.update();
+      if (headBone) {
+        headYawBase = headBone.rotation.y;
+        headPitchBase = headBone.rotation.x;
+      }
+      smoothYaw = 0;
+      smoothPitch = 0;
+      measureModel();
+      vrm.springBoneManager?.reset?.(); // don't let the hair freak out from the pose jump
+      setPoseButtons(mode);
+    }
+
+    const poseBtns = {
+      idle: document.getElementById('pose-idle'),
+      sit: document.getElementById('pose-sit'),
+      stand: document.getElementById('pose-stand')
+    };
+
+    // ---------- deep meow toggle ----------
+    let deepMeows = true;
+    try { deepMeows = localStorage.getItem('growcat-deepmeow') !== '0'; } catch (e) {}
+    const meowBtn = document.getElementById('meow-btn');
+
+    function refreshMeowBtn() {
+      meowBtn.textContent = deepMeows ? '🦁' : '🐱';
+      meowBtn.classList.toggle('active', deepMeows);
+      meowBtn.title = deepMeows ? 'deep meows: ON (he gets deeper as he grows)' : 'deep meows: OFF';
+    }
+    refreshMeowBtn();
+
+    meowBtn.addEventListener('click', () => {
+      deepMeows = !deepMeows;
+      try { localStorage.setItem('growcat-deepmeow', deepMeows ? '1' : '0'); } catch (e) {}
+      refreshMeowBtn();
+    });
+
+    // ---------- background music ----------
+    const bgm = new Audio(BGM_FILE);
+    bgm.loop = true;
+    bgm.volume = BGM_VOLUME;
+    let bgmOn = true;
+    try { bgmOn = localStorage.getItem('growcat-bgm') !== '0'; } catch (e) {}
+    const bgmBtn = document.getElementById('bgm-btn');
+    bgm.addEventListener('error', () => { bgmBtn.style.display = 'none'; });
+
+    function updateBgm() {
+      bgmBtn.textContent = bgmOn ? '🎵' : '🔇';
+      bgmBtn.classList.toggle('active', bgmOn);
+      if (bgmOn) bgm.play().catch(() => {}); // may be blocked until a gesture
+      else bgm.pause();
+    }
+    updateBgm();
+
+    bgmBtn.addEventListener('click', () => {
+      bgmOn = !bgmOn;
+      try { localStorage.setItem('growcat-bgm', bgmOn ? '1' : '0'); } catch (e) {}
+      updateBgm();
+    });
+
+    // browsers block autoplay — start on the first user interaction instead
+    window.addEventListener('pointerdown', () => { if (bgmOn) bgm.play().catch(() => {}); }, { once: true });
+
+    // ============================================================
+    //  GROWTH GALLERY — spend cm to unlock artworks & discount codes
+    // ============================================================
+    const ART_UNLOCKS = [
+      { cm: 200,   file: './2m.jpg',       label: '2 m' },
+      { cm: 500,   file: './5m.jpg',       label: '5 m' },
+      { cm: 1000,  file: './10m.jpg',      label: '10 m' },
+      { cm: 2000,  file: './20m.jpg',      label: '20 m' },
+      { cm: 20000, file: './200m.jpg',     label: '200 m' },
+      { cm: 2e5,   file: './2km.jpg',      label: '2 km' },
+      { cm: 4e5,   file: './4km.jpg',      label: '4 km' },
+      { cm: 2e8,   file: './2000km.jpg',   label: '2000 km' },
+      { cm: 2e10,  file: './200000km.jpg', label: '200,000 km' }
+    ];
+
+    // NOTE: create these codes in the shop, or edit them here to match!
+    const REWARD_CODES = [
+      { cm: 2e5,  code: 'cat2km',    off: '5%',  label: '2 km' },
+      { cm: 2e10, code: 'catcosmic', off: '10%', label: '200,000 km' }
+    ];
+
+    game.best = Math.max(game.best ?? 0, game.size);
+    game.artOwned = game.artOwned ?? {};
+    game.codesOwned = game.codesOwned ?? {};
+
+    const countUnlocks = () => ART_UNLOCKS.filter((a, i) => game.artOwned[i]).length;
+
+    const galleryPanel = document.getElementById('gallery-panel');
+    const galleryGrid = document.getElementById('gallery-grid');
+    const galleryBadge = document.getElementById('gallery-badge');
+    const lightbox = document.getElementById('lightbox');
+    const lightboxImg = document.getElementById('lightbox-img');
+    const toastEl = document.getElementById('unlock-toast');
+    let toastTimer = null;
+
+    // first-time content note before any art purchase
+    let artWarned = false;
+    try { artWarned = localStorage.getItem('growcat-artwarn') === '1'; } catch (e) {}
+    const artWarn = document.getElementById('art-warn');
+    let pendingArt = -1;
+
+    function tryBuyArt(i) {
+      const art = ART_UNLOCKS[i];
+      if (game.artOwned[i] || game.size < art.cm) return;
+      if (!artWarned) {
+        pendingArt = i;
+        artWarn.classList.add('show');
+        return;
+      }
+      game.size -= art.cm;
+      game.artOwned[i] = true;
+      saveGame();
+      updateHUD();
+      refreshGallery();
+      showToast(t('artToast', art.label));
+    }
+
+    document.getElementById('art-warn-yes').addEventListener('click', () => {
+      artWarned = true;
+      try { localStorage.setItem('growcat-artwarn', '1'); } catch (e) {}
+      artWarn.classList.remove('show');
+      if (pendingArt >= 0) tryBuyArt(pendingArt);
+      pendingArt = -1;
+    });
+    document.getElementById('art-warn-no').addEventListener('click', () => {
+      artWarn.classList.remove('show');
+      pendingArt = -1;
+    });
+
+    const artTiles = ART_UNLOCKS.map((art, i) => {
+      const tile = document.createElement('div');
+      tile.className = 'art-tile';
+      tile.addEventListener('click', () => {
+        if (tile.classList.contains('unlocked')) {
+          lightboxImg.src = art.file;
+          lightbox.classList.add('show');
+        } else {
+          tryBuyArt(i);
+        }
+      });
+      galleryGrid.appendChild(tile);
+      return tile;
+    });
+
+    lightbox.addEventListener('click', () => lightbox.classList.remove('show'));
+    document.getElementById('gallery-btn').addEventListener('click', () => { refreshGallery(); galleryPanel.classList.add('show'); });
+    document.getElementById('gallery-close').addEventListener('click', () => galleryPanel.classList.remove('show'));
+    galleryPanel.addEventListener('click', (e) => { if (e.target === galleryPanel) galleryPanel.classList.remove('show'); });
+
+    function refreshGallery() {
+      ART_UNLOCKS.forEach((art, i) => {
+        const tile = artTiles[i];
+        const unlocked = !!game.artOwned[i];
+        if (unlocked && !tile.classList.contains('unlocked')) {
+          tile.classList.add('unlocked');
+          tile.classList.remove('affordable');
+          tile.innerHTML = `<img src="${art.file}" alt="${art.label} artwork" loading="lazy"><span class="tag">${art.label}</span>`;
+        } else if (!unlocked) {
+          if (tile.classList.contains('unlocked')) tile.classList.remove('unlocked'); // reset re-locks
+          tile.innerHTML = `<span class="lock">🔒</span><span class="grow-label">${t('unlockFor', art.label)}</span><span class="tag"></span>`;
+          tile.classList.toggle('affordable', game.size >= art.cm);
+        }
+      });
+      galleryBadge.textContent = `${countUnlocks()}/${ART_UNLOCKS.length}`;
+      refreshRewards();
+    }
+
+    // ---------- discount code rewards (also spend-to-unlock) ----------
+    const rewardsList = document.getElementById('rewards-list');
+
+    function refreshRewards() {
+      rewardsList.innerHTML = '';
+      REWARD_CODES.forEach((r, i) => {
+        const row = document.createElement('div');
+        const unlocked = !!game.codesOwned[i];
+        row.className = 'reward-row' + (unlocked ? '' : ' locked') +
+          (!unlocked && game.size >= r.cm ? ' affordable' : '');
+        row.textContent = unlocked ? t('rewardRow', r.code, r.off) : t('rewardUnlockFor', r.off, r.label);
+        if (!unlocked) {
+          row.style.cursor = 'pointer';
+          row.addEventListener('click', () => {
+            if (game.size < r.cm) return;
+            game.size -= r.cm;
+            game.codesOwned[i] = true;
+            saveGame();
+            updateHUD();
+            refreshGallery();
+            showToast(t('rewardToast', r.code, r.off));
+          });
+        }
+        rewardsList.appendChild(row);
+      });
+    }
+
+    function showToast(msg, ms = 4000) {
+      toastEl.textContent = msg;
+      toastEl.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toastEl.classList.remove('show'), ms);
+    }
+
+    function bumpBest() {
+      if (game.size > game.best) game.best = game.size;
+    }
+
+    refreshGallery();
+    applyLang(); // paints all text in the saved (or default) language
+
+    function setPoseButtons(mode) {
+      Object.entries(poseBtns).forEach(([m, btn]) => btn.classList.toggle('active', m === mode));
+    }
+
+    poseBtns.idle.addEventListener('click', () => setAnimMode('idle'));
+    poseBtns.sit.addEventListener('click', () => setAnimMode('sit'));
+    poseBtns.stand.addEventListener('click', () => setAnimMode('stand'));
+
+    // ---------- cursor following ----------
+    function updatePointer(clientX, clientY) {
+      const rect = renderer.domElement.getBoundingClientRect();
+      pointerNDC.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+      pointerNDC.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+
+      raycaster.setFromCamera(pointerNDC, camera);
+      lookTarget.position.copy(raycaster.ray.origin)
+        .addScaledVector(raycaster.ray.direction, Math.max(orbit.radius * orbit.userZoom * 0.5, 1));
+    }
+
+    window.addEventListener('pointermove', (e) => updatePointer(e.clientX, e.clientY));
+
+    // ---------- poking / panning / pinch zoom ----------
+    // Touch rules that make BOTH rapid-tapping and close-up pinching work:
+    // - first finger on the cat -> pokes immediately (responsive)
+    // - a second finger while one is held -> AMBIGUOUS: could be a pinch
+    //   (even if it lands on the cat, e.g. zoomed all the way in) or an
+    //   overlapping rapid tap. We wait: if the fingers move, it's a pinch;
+    //   if it lifts quickly without moving, the poke fires on release.
+    let panning = false;
+    let lastPX = 0, lastPY = 0;
+    const pointers = new Map();
+    let pinchDist = 0;
+    let pinchMoved = 0;
+
+    function pointerOnCat(clientX, clientY) {
+      updatePointer(clientX, clientY);
+      raycaster.setFromCamera(pointerNDC, camera);
+      // raycasting a skinned mesh transforms EVERY vertex by its bones —
+      // tens of ms per tap on phones, which froze the render loop during
+      // rapid tapping. Mobile uses only the cheap invisible hit sphere.
+      if (!isMobile && raycaster.intersectObject(vrm.scene, true).length > 0) return true;
+      return raycaster.intersectObject(hitProxy, false).length > 0;
+    }
+
+    renderer.domElement.addEventListener('pointerdown', (e) => {
+      if (!vrm) return;
+      const onCat = pointerOnCat(e.clientX, e.clientY);
+      const info = {
+        x: e.clientX, y: e.clientY,
+        downX: e.clientX, downY: e.clientY,
+        t: performance.now(), onCat, poked: false
+      };
+
+      if (pointers.size === 0) {
+        if (onCat) {
+          onPoke(e.clientX, e.clientY);
+          info.poked = true;
+        } else {
+          panning = true;
+          lastPX = e.clientX;
+          lastPY = e.clientY;
+        }
+        renderer.domElement.setPointerCapture(e.pointerId);
+      } else if (pointers.size === 1) {
+        panning = false;
+        const other = [...pointers.values()][0];
+        pinchDist = Math.hypot(other.x - e.clientX, other.y - e.clientY);
+        pinchMoved = 0;
+      }
+      pointers.set(e.pointerId, info);
+    });
+
+    renderer.domElement.addEventListener('pointermove', (e) => {
+      const p = pointers.get(e.pointerId);
+      if (p) { p.x = e.clientX; p.y = e.clientY; }
+
+      if (pointers.size === 2) {
+        const [a, b] = [...pointers.values()];
+        const d = Math.hypot(a.x - b.x, a.y - b.y);
+        if (pinchDist > 0 && d > 0) {
+          pinchMoved += Math.abs(d - pinchDist);
+          if (pinchMoved > 12) { // it's a real pinch, not an overlapping tap
+            orbit.userZoom = THREE.MathUtils.clamp(orbit.userZoom * (pinchDist / d), 0.25, 5);
+          }
+        }
+        pinchDist = d;
+        return;
+      }
+
+      if (!panning || pointers.size !== 1) return;
+      orbit.theta -= (e.clientX - lastPX) * 0.005;
+      orbit.phi = THREE.MathUtils.clamp(orbit.phi + (e.clientY - lastPY) * 0.003, 0.4, 1.65);
+      lastPX = e.clientX;
+      lastPY = e.clientY;
+    });
+
+    function endPointer(e) {
+      const p = pointers.get(e.pointerId);
+      pointers.delete(e.pointerId);
+
+      // an overlapping quick tap on the cat that never became a pinch
+      if (p && !p.poked && p.onCat && pinchMoved <= 12 &&
+          performance.now() - p.t < 350 &&
+          Math.hypot(p.x - p.downX, p.y - p.downY) < 12) {
+        onPoke(p.x, p.y);
+      }
+
+      if (pointers.size < 2) { pinchDist = 0; pinchMoved = 0; }
+      if (pointers.size === 0) panning = false;
+      if (renderer.domElement.hasPointerCapture?.(e.pointerId)) {
+        renderer.domElement.releasePointerCapture(e.pointerId);
+      }
+    }
+    renderer.domElement.addEventListener('pointerup', endPointer);
+    renderer.domElement.addEventListener('pointercancel', endPointer);
+
+    renderer.domElement.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      orbit.userZoom = THREE.MathUtils.clamp(
+        orbit.userZoom * Math.pow(1.0015, e.deltaY), 0.25, 5);
+    }, { passive: false });
+
+    // ---------- poke! ----------
+    function onPoke(px, py) {
+      if (gameActive) {
+        const gain = clickPower();
+        game.size += gain;
+        bumpBest();
+        updateHUD();
+        bounceSize();
+        spawnPlusCm(px, py, gain);
+      }
+      if (!isMobile) boingV -= 5; // spring squash is desktop-only (mobile perf)
+
+      if (vrm.expressionManager) {
+        if (!activeExpression) {
+          activeExpression = POKE_EXPRESSIONS.find(
+            (name) => vrm.expressionManager.getExpression(name)
+          ) ?? null;
+        }
+        if (activeExpression) expressionPulse = 1;
+      }
+
+      spawnHearts(px, py);
+
+      playPokeSound();
+    }
+
+    // ---------- meow vs purr ----------
+    // single pokes meow; rapid clicking switches to a looping purr
+    const meowPool = SOUND_FILES.map((f) => new Audio(f));
+    const purr = new Audio(PURR_FILE);
+    purr.loop = true;
+    let purrBroken = false;
+    purr.addEventListener('error', () => { purrBroken = true; });
+    let lastPokeAt = 0;
+    let pokeStreak = 0;
+    let purrStopTimer = null;
+
+    function currentPitch() {
+      if (!deepMeows) return 1;
+      const h = game.size / 100; // metres
+      if (h <= MEOW_DEEP_START_M) return 1;
+      const prog = Math.min(1,
+        Math.log(h / MEOW_DEEP_START_M) / Math.log(MEOW_DEEP_END_M / MEOW_DEEP_START_M));
+      return THREE.MathUtils.lerp(1, MEOW_MIN_PITCH, prog);
+    }
+
+    function playPokeSound() {
+      const now = performance.now();
+      pokeStreak = (now - lastPokeAt < 400) ? pokeStreak + 1 : 1;
+      lastPokeAt = now;
+
+      const pitch = currentPitch();
+
+      if (pokeStreak >= 3 && !purrBroken) {
+        // rapid clicking -> purr instead of meow spam
+        purr.preservesPitch = false;
+        purr.webkitPreservesPitch = false;
+        purr.playbackRate = pitch;
+        purr.volume = 1;
+        if (purr.paused) purr.play().catch(() => { purrBroken = true; });
+        clearTimeout(purrStopTimer);
+        purrStopTimer = setTimeout(() => {
+          // gentle fade out once the clicking stops
+          const fade = setInterval(() => {
+            purr.volume = Math.max(0, purr.volume - 0.15);
+            if (purr.volume <= 0) {
+              purr.pause();
+              purr.currentTime = 0;
+              clearInterval(fade);
+            }
+          }, 60);
+        }, 700);
+        return;
+      }
+
+      // normal poke -> meow (deeper as he grows: normal until 10 m,
+      // deepest at 5 km — logarithmic so it deepens the whole way)
+      // mobile reuses pooled players; desktop overlaps freely
+      const idx = Math.floor(Math.random() * SOUND_FILES.length);
+      const audio = isMobile ? meowPool[idx] : new Audio(SOUND_FILES[idx]);
+      audio.preservesPitch = false;
+      audio.webkitPreservesPitch = false;
+      audio.playbackRate = pitch;
+      if (isMobile) audio.currentTime = 0;
+      audio.play().catch(() => {});
+    }
+
+    function spawnHearts(px, py) {
+      const emojis = ['💖', '💕', '❤️', '💗', '🩷'];
+      const n = isMobile ? 1 : 3 + Math.floor(Math.random() * 3);
+      for (let i = 0; i < n; i++) {
+        const heart = document.createElement('div');
+        heart.className = 'heart';
+        heart.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+        heart.style.left = `${px + (Math.random() * 40 - 20)}px`;
+        heart.style.top = `${py + (Math.random() * 20 - 10)}px`;
+        heart.style.setProperty('--dx', `${Math.random() * 80 - 40}px`);
+        heart.style.setProperty('--rot', `${Math.random() * 40 - 20}deg`);
+        heart.style.animationDelay = `${Math.random() * 0.15}s`;
+        document.body.appendChild(heart);
+        setTimeout(() => heart.remove(), 1500);
+      }
+    }
+
+    let mobilePlusEl = null;
+
+    function spawnPlusCm(px, py, gain) {
+      if (isMobile) {
+        if (!mobilePlusEl) {
+          mobilePlusEl = document.createElement('div');
+          mobilePlusEl.className = 'plus-cm';
+          document.body.appendChild(mobilePlusEl);
+        }
+        mobilePlusEl.textContent = `+${formatCost(gain)}`;
+        mobilePlusEl.style.left = `${px}px`;
+        mobilePlusEl.style.top = `${py - 30}px`;
+        mobilePlusEl.style.setProperty('--dx', '0px');
+        mobilePlusEl.style.setProperty('--rot', '0deg');
+        mobilePlusEl.style.animation = 'none';
+        mobilePlusEl.offsetHeight; // restart the animation (one cheap read)
+        mobilePlusEl.style.animation = '';
+        return;
+      }
+      const el = document.createElement('div');
+      el.className = 'plus-cm';
+      el.textContent = `+${formatCost(gain)}`;
+      el.style.left = `${px}px`;
+      el.style.top = `${py - 30}px`;
+      el.style.setProperty('--dx', '0px');
+      el.style.setProperty('--rot', '0deg');
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 1300);
+    }
+
+    // ---------- render loop ----------
+    const clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const delta = Math.min(clock.getDelta(), 0.1);
+      const t = clock.elapsedTime;
+
+      if (gameActive) {
+        const rate = cps();
+        if (rate > 0) {
+          game.size += rate * delta;
+          bumpBest();
+          updateHUD();
+        }
+      }
+
+      if (vrm && measured) {
+        if (mixer) mixer.update(delta);
+
+        // breathing for held poses (code-made or settled .vrma pose)
+        const isStaticPose = (animMode === 'sit' || animMode === 'stand') && poseSettled;
+        if (isStaticPose && breathBone) {
+          lastBreathOff = Math.sin(t * 1.6) * 0.035;
+          breathBone.rotation.x = breathBaseX + lastBreathOff;
+        } else {
+          lastBreathOff = 0;
+        }
+
+        if (HEAD_FOLLOW && headBone) {
+          const headPos = new THREE.Vector3();
+          headBone.getWorldPosition(headPos);
+          const dir = lookTarget.position.clone().sub(headPos);
+          const yaw = THREE.MathUtils.clamp(Math.atan2(dir.x, dir.z), -0.55, 0.55);
+          const pitch = THREE.MathUtils.clamp(-Math.atan2(dir.y, Math.hypot(dir.x, dir.z)), -0.35, 0.35);
+          smoothYaw = THREE.MathUtils.lerp(smoothYaw, yaw * 0.7, 0.12);
+          smoothPitch = THREE.MathUtils.lerp(smoothPitch, pitch * 0.7, 0.12);
+          // adding on top is ONLY safe while a looping animation rewrites the
+          // head every frame; sit/stand always use absolute values instead
+          const additiveOk = (animMode === 'idle' || animMode === 'hello')
+            && currentModeIsClip && headAnimatedNow;
+          const headBob = isStaticPose ? Math.sin(t * 1.6) * 0.016 : 0;
+          lastHeadOffY = smoothYaw;
+          lastHeadOffX = smoothPitch * facing + headBob;
+          if (additiveOk) {
+            headBone.rotation.y += lastHeadOffY;
+            headBone.rotation.x += lastHeadOffX;
+          } else {
+            headBone.rotation.y = headYawBase + lastHeadOffY;
+            headBone.rotation.x = headPitchBase + lastHeadOffX;
+          }
+        }
+
+        // occasional blink (if the model has a blink expression)
+        if (vrm.expressionManager?.getExpression('blink')) {
+          blinkTimer -= delta;
+          if (blinkTimer <= 0) blinkTimer = 2.5 + Math.random() * 4;
+          const b = blinkTimer < 0.16 ? Math.sin((0.16 - blinkTimer) / 0.16 * Math.PI) : 0;
+          vrm.expressionManager.setValue('blink', b);
+        }
+
+        // --- growth: cat stays scale 1, world shrinks around him ---
+        // before the game starts he shows off at full model size (the real
+        // 30 cm start would be a speck next to the reference humans) and
+        // shrinks down to his true size when you press play
+        const targetHeight = gameActive
+          ? game.size / 100
+          : Math.max(game.size / 100, modelHeight);              // real metres
+        refCluster.visible = gameActive;
+        currentCatHeight = THREE.MathUtils.lerp(currentCatHeight, targetHeight, 0.08);
+        const k = modelHeight / currentCatHeight;                 // view units per real metre
+
+        // springy squash: every poke kicks the spring, so rapid taps keep
+        // him visibly bouncing instead of freezing until you stop
+        boingV += (-140 * boingP - 11 * boingV) * delta;
+        boingP = THREE.MathUtils.clamp(boingP + boingV * delta, -0.22, 0.22);
+        vrm.scene.scale.set(1 - boingP * 0.55, 1 + boingP, 1 - boingP * 0.55);
+        // settle his feet slightly into the surface — the flat ground needs
+        // about half the depth the curved planet ball does
+        const onBall = GROUND_MODE !== 'plain' && currentCatHeight >= PLANET_PHASE_M;
+        vrm.scene.position.y = -modelMinY * (1 + boingP) - (onBall ? planetSink : groundSink) * modelHeight;
+
+        // camera frames whichever is taller on screen: the cat or the refs
+        const ref = REFS[refIndex];
+        const frameHeight = Math.max(modelHeight * 1.2, ref.height * k * 1.3);
+        const fitDist = (frameHeight / 2) / Math.tan((camera.fov * Math.PI / 180) / 2);
+        orbit.radius = fitDist * 1.35;
+        orbit.center.set(0, frameHeight * 0.45, 0);
+        updateCameraFromOrbit();
+
+        // --- ground: zooming map, then a shrinking planet under him ---
+        hitProxy.position.set(0, modelHeight * 0.5, 0);
+        hitProxy.scale.setScalar(Math.max(modelHeight * 0.55, orbit.radius * orbit.userZoom * 0.07));
+
+        const groundR = Math.max(orbit.radius * orbit.userZoom * 6, 10);
+        const inBallPhase = GROUND_MODE !== 'plain' && currentCatHeight >= PLANET_PHASE_M;
+
+        ground.visible = !inBallPhase;
+        planet.visible = inBallPhase;
+        satPlane.visible = false;
+
+        if (!inBallPhase) {
+          ground.scale.setScalar(groundR);
+          if (groundTex && !sat.anyLoaded) {
+            // drawn-map fallback: fixed real-world feature size, so the
+            // pattern shrinks under him as he grows = map zooming out
+            const FEATURE_M = 220;
+            const n = THREE.MathUtils.clamp((2 * groundR) / (FEATURE_M * k), 2, 4096);
+            groundTex.repeat.set(n, n);
+          }
+          if (sat.enabled) {
+            // pick the zoom level whose 4-tile span comfortably covers the view
+            const desiredSpanReal = (orbit.radius * orbit.userZoom * 5) / k;
+            const zTarget = THREE.MathUtils.clamp(
+              Math.round(Math.log2(4 * EARTH_CIRC * cosLat / desiredSpanReal)), 2, SAT_MAX_Z);
+            if (sat.current?.z !== zTarget) requestSatZoom(zTarget);
+            if (sat.current) {
+              const spanView = sat.current.spanReal * k;
+              satPlane.visible = true;
+              satPlane.scale.set(spanView, spanView, 1);
+            }
+          }
+        } else {
+          const rView = EARTH_R_M * k;   // planet radius in view units
+          planet.scale.setScalar(rView);
+          planet.position.y = -rView;
+          planetSpin += delta * 0.02;
+          planet.quaternion.setFromAxisAngle(WORLD_UP, planetSpin).multiply(planetBaseQ);
+        }
+
+        // fake shadow makes no sense on a curved marble — flat ground only
+        const shadowSize = modelHeight * 0.35;
+        shadow.visible = !inBallPhase;
+        shadow.scale.setScalar(shadowSize);
+
+        // swap in bigger references as he grows
+        const want = pickRef(currentCatHeight);
+        if (want !== refIndex) swapRef(want);
+
+        // lay out the crowd: real metres, scaled to view by k,
+        // pushed outward so the growing cat never swallows them
+        refCluster.scale.setScalar(k);
+        const catFootprint = currentCatHeight * 0.35;
+        for (const child of refCluster.children) {
+          const d = child.userData;
+          if (!d?.dir) continue;
+          const dist = Math.max(d.dist, catFootprint + (ref.clearance ?? 1));
+          child.position.copy(d.dir).multiplyScalar(dist);
+          if (d.faceCenter) {
+            child.rotation.y = Math.atan2(-child.position.x, -child.position.z);
+          }
+          if (d.headPivot) {
+            const lookUp = Math.atan2(currentCatHeight * 0.85 - (d.eyeHeight ?? 1.6), dist);
+            d.headPivot.rotation.x = THREE.MathUtils.lerp(
+              d.headPivot.rotation.x,
+              THREE.MathUtils.clamp(-lookUp, -1.25, 0.3),
+              0.1
+            );
+          }
+        }
+
+        if (activeExpression && expressionPulse > 0) {
+          expressionPulse = Math.max(0, expressionPulse - delta * 1.4);
+          vrm.expressionManager.setValue(activeExpression, Math.sin(expressionPulse * Math.PI));
+        }
+
+        vrm.update(delta);
+      }
+
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    window.addEventListener('resize', () => {
+      renderer.setSize(stage.clientWidth, stage.clientHeight);
+      camera.aspect = stage.clientWidth / stage.clientHeight;
+      camera.updateProjectionMatrix();
+    });
   </script>
 </body>
 </html>

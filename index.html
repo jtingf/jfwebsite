@@ -747,6 +747,7 @@
     <div id="unlock-toast"></div>
 
     <div id="pose-buttons">
+      <button id="quality-btn"></button>
       <button id="bgm-btn" title="music"></button>
       <button id="meow-btn" title="deep meows as he grows"></button>
       <button id="pose-idle" title="idle animation">💤</button>
@@ -821,9 +822,10 @@
 
     const isLocalDev = ['localhost', '127.0.0.1', ''].includes(location.hostname);
     const isMobile = matchMedia('(pointer: coarse)').matches;
-    // 'lite' = reduced-effects mode. Mobile starts in it; desktops get it
-    // automatically if the performance governor sees them struggling.
-    let lite = isMobile;
+    // 'lite' = reduced-effects smooth mode — the DEFAULT for everyone.
+    // High graphics is a deliberate opt-in via the ✨ toggle.
+    let lite = true;
+    try { lite = localStorage.getItem('growcat-quality') !== 'high'; } catch (e) {}
     const fresh = (url) => isLocalDev ? `${url}?v=${Date.now()}` : url;
 
     // ============================================================
@@ -924,7 +926,8 @@
         rewardsHint: 'codes are for jtingf.shop (my fursuit supplies shop) — not the feed shop 😹',
         lightYears: 'light-years',
         camHint: '🖐️ drag to look around · scroll / pinch to zoom',
-        perfLite: '⚡ performance mode on — smoother play on this device',
+        qualityLite: '⚡ smooth mode on',
+        qualityHigh: '✨ high graphics on (fully applies after a reload)',
         goldFish: (x) => `🐟 golden fish! +${x}`,
         navShop: 'Shop', navPortfolio: 'Portfolio', siteLabel: 'jtingf.com ! links>>',
       },
@@ -947,7 +950,8 @@
         rewardsHint: '折扣碼用在 jtingf.shop（我的獸裝材料店）— 不是餵食商店喔 😹',
         lightYears: '光年',
         camHint: '🖐️ 拖曳旋轉視角 · 滾輪或雙指縮放',
-        perfLite: '⚡ 效能模式已開啟 — 讓這台裝置跑得更順',
+        qualityLite: '⚡ 流暢模式已開啟',
+        qualityHigh: '✨ 高畫質已開啟（重新整理後完整生效）',
         goldFish: (x) => `🐟 黃金魚魚！+${x}`,
         navShop: '商店', navPortfolio: '作品集', siteLabel: 'jtingf.com ！連結>>',
       }
@@ -1262,11 +1266,11 @@
     const overlay = document.getElementById('overlay');
     const overlayText = document.getElementById('overlay-text');
 
-    // in-app webviews (Telegram, Instagram...) give pages a tight memory
-    // budget — iOS kills heavy pages with "a problem repeatedly occurred".
-    // Mobile therefore renders leaner: no MSAA, capped pixel ratio.
-    const renderer = new THREE.WebGLRenderer({ antialias: !isMobile, alpha: true });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 1.5 : 2));
+    // MSAA can only be chosen at context creation, so it follows the
+    // SAVED quality preference (toggling to high mid-session applies
+    // everything else immediately; MSAA joins after a reload).
+    const renderer = new THREE.WebGLRenderer({ antialias: !lite && !isMobile, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, lite ? 1.5 : 2));
     renderer.setSize(stage.clientWidth, stage.clientHeight);
     stage.appendChild(renderer.domElement);
 
@@ -2476,15 +2480,9 @@
       updatePointer(clientX, clientY);
       raycaster.setFromCamera(pointerNDC, camera);
       // raycasting a skinned mesh transforms EVERY vertex by its bones —
-      // fine on a fast PC, brutal on phones and weak desktops (Pi etc).
-      // Lite devices use only the cheap invisible hit sphere; and if the
-      // precise test proves slow on THIS machine, switch to lite for good.
-      if (!lite) {
-        const t0 = performance.now();
-        const hit = raycaster.intersectObject(vrm.scene, true).length > 0;
-        if (performance.now() - t0 > 12) enterLite('slow raycast');
-        if (hit) return true;
-      }
+      // fine on a fast PC in high mode, brutal everywhere else. Lite mode
+      // uses only the cheap invisible hit sphere.
+      if (!lite && raycaster.intersectObject(vrm.scene, true).length > 0) return true;
       return raycaster.intersectObject(hitProxy, false).length > 0;
     }
 
@@ -2602,6 +2600,10 @@
     let lastPokeAt = 0;
     let pokeStreak = 0;
     let purrStopTimer = null;
+    let purrFade = null; // the fade interval — MUST be cleared on resume,
+                         // or ghost fades keep pausing the purr and every
+                         // tap restarts it (audio restarts are costly on
+                         // iOS: this was the "laggy after a while" bug)
 
     function currentPitch() {
       if (!deepMeows) return 1;
@@ -2624,17 +2626,21 @@
         purr.preservesPitch = false;
         purr.webkitPreservesPitch = false;
         purr.playbackRate = pitch;
+        clearInterval(purrFade); // kill any in-flight fade before resuming
+        purrFade = null;
         purr.volume = 1;
         if (purr.paused) purr.play().catch(() => { purrBroken = true; });
         clearTimeout(purrStopTimer);
         purrStopTimer = setTimeout(() => {
           // gentle fade out once the clicking stops
-          const fade = setInterval(() => {
+          clearInterval(purrFade);
+          purrFade = setInterval(() => {
             purr.volume = Math.max(0, purr.volume - 0.15);
             if (purr.volume <= 0) {
               purr.pause();
               purr.currentTime = 0;
-              clearInterval(fade);
+              clearInterval(purrFade);
+              purrFade = null;
             }
           }, 60);
         }, 700);
@@ -2653,9 +2659,38 @@
       audio.play().catch(() => {});
     }
 
+    const heartPool = [];
+    let heartPoolIdx = 0;
+
+    function pooledHeart() {
+      if (heartPool.length < 8) {
+        const h = document.createElement('div');
+        h.className = 'heart';
+        document.body.appendChild(h);
+        heartPool.push(h);
+        return h;
+      }
+      heartPoolIdx = (heartPoolIdx + 1) % heartPool.length;
+      return heartPool[heartPoolIdx];
+    }
+
     function spawnHearts(px, py) {
       const emojis = ['💖', '💕', '❤️', '💗', '🩷'];
-      const n = lite ? 1 : 3 + Math.floor(Math.random() * 3);
+      if (lite) {
+        // reuse pooled elements — creating/removing DOM nodes per tap
+        // adds up during rapid tapping on weaker devices
+        const heart = pooledHeart();
+        heart.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+        heart.style.left = `${px + (Math.random() * 40 - 20)}px`;
+        heart.style.top = `${py + (Math.random() * 20 - 10)}px`;
+        heart.style.setProperty('--dx', `${Math.random() * 80 - 40}px`);
+        heart.style.setProperty('--rot', `${Math.random() * 40 - 20}deg`);
+        heart.style.animation = 'none';
+        heart.offsetHeight;
+        heart.style.animation = '';
+        return;
+      }
+      const n = 3 + Math.floor(Math.random() * 3);
       for (let i = 0; i < n; i++) {
         const heart = document.createElement('div');
         heart.className = 'heart';
@@ -2700,33 +2735,23 @@
       setTimeout(() => el.remove(), 1300);
     }
 
-    // ---------- performance governor ----------
-    // Watches real FPS after things settle; a device that can't hold a
-    // decent frame rate gets moved to lite mode (fewer effects, lower
-    // pixel ratio). Fast machines are never touched.
-    function enterLite(reason) {
-      if (lite) return;
-      lite = true;
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25));
-      console.log('[cat] performance mode on (' + reason + ')');
-      setStatus(t('perfLite'));
+    // ---------- quality toggle (lite by default, ✨ opts into high) ----------
+    const qualityBtn = document.getElementById('quality-btn');
+
+    function refreshQualityBtn() {
+      qualityBtn.textContent = lite ? '⚡' : '✨';
+      qualityBtn.classList.toggle('active', !lite);
+      qualityBtn.title = lite ? 'smooth mode (tap for high graphics)' : 'high graphics (tap for smooth mode)';
     }
 
-    let fpsFrames = 0;
-    let fpsWindowStart = 0;
-    let fpsWarmedUp = false;
-
-    function governFps(now) {
-      if (lite || !measured) return;
-      if (fpsWindowStart === 0) { fpsWindowStart = now; fpsFrames = 0; return; }
-      fpsFrames++;
-      if (now - fpsWindowStart < 4000) return;
-      const fps = fpsFrames * 1000 / (now - fpsWindowStart);
-      fpsFrames = 0;
-      fpsWindowStart = now;
-      if (!fpsWarmedUp) { fpsWarmedUp = true; return; } // skip the loading window
-      if (fps < 38) enterLite(`${fps.toFixed(0)} fps`);
-    }
+    qualityBtn.addEventListener('click', () => {
+      lite = !lite;
+      try { localStorage.setItem('growcat-quality', lite ? 'lite' : 'high'); } catch (e) {}
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, lite ? 1.5 : 2));
+      refreshQualityBtn();
+      setStatus(t(lite ? 'qualityLite' : 'qualityHigh'));
+    });
+    refreshQualityBtn();
 
     // ---------- render loop ----------
     const clock = new THREE.Clock();
@@ -2734,7 +2759,6 @@
     function animate() {
       window.__catBooted = true; // first frame = the guard stands down
       requestAnimationFrame(animate);
-      governFps(performance.now());
       const delta = Math.min(clock.getDelta(), 0.1);
       const t = clock.elapsedTime;
 

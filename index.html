@@ -838,7 +838,9 @@
     const SHOP_ITEMS = [
       { id: 'snack',    emoji: '🍤', name: 'Protein Snack',      nameZh: '蛋白點心',   type: 'click', power: 10,     baseCost: 100,      desc: '+10 cm per poke', descZh: '每戳 +10 cm' },
       { id: 'spoon',    emoji: '🥄', name: 'Golden Spoon',       nameZh: '黃金湯匙',   type: 'click', power: 150,    baseCost: 2500,     desc: '+150 cm per poke', descZh: '每戳 +150 cm' },
-      { id: 'gloves',   emoji: '🧤', name: 'Petting Gloves',     nameZh: '撫摸手套',   type: 'clickpct', power: 0.0005, baseCost: 60000 },
+      // NOTE: percentage clicks COMPOUND (each click makes the next one
+      // bigger), so this stays deliberately tiny with a steep price curve
+      { id: 'gloves',   emoji: '🧤', name: 'Petting Gloves',     nameZh: '撫摸手套',   type: 'clickpct', power: 0.0001, baseCost: 60000, costGrowth: 1.35 },
       { id: 'feeder',   emoji: '🍚', name: 'Auto Feeder',        nameZh: '自動餵食器', type: 'auto',  power: 1,      baseCost: 50,       desc: '1 cm/s', descZh: '每秒 1 cm' },
       { id: 'truck',    emoji: '🚚', name: 'Feeding Truck',      nameZh: '餵食卡車',   type: 'auto',  power: 8,      baseCost: 500,      desc: '8 cm/s', descZh: '每秒 8 cm' },
       { id: 'cannon',   emoji: '🐟', name: 'Fish Cannon',        nameZh: '魚魚大砲',   type: 'auto',  power: 47,     baseCost: 3000,     desc: '47 cm/s', descZh: '每秒 47 cm' },
@@ -860,7 +862,7 @@
     const FISH_PER_UPGRADE = 5;
     const shopMult = () => Math.pow(2, Math.floor(game.fishCaught / FISH_PER_UPGRADE));
 
-    const costOf = (item) => Math.ceil(item.baseCost * Math.pow(COST_GROWTH, game.owned[item.id]));
+    const costOf = (item) => Math.ceil(item.baseCost * Math.pow(item.costGrowth ?? COST_GROWTH, game.owned[item.id]));
     const clickPower = () => {
       const flat = CLICK_BASE + SHOP_ITEMS
         .filter(i => i.type === 'click')

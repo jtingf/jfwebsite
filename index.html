@@ -838,8 +838,7 @@
     const SHOP_ITEMS = [
       { id: 'snack',    emoji: '🍤', name: 'Protein Snack',      nameZh: '蛋白點心',   type: 'click', power: 10,     baseCost: 100,      desc: '+10 cm per poke', descZh: '每戳 +10 cm' },
       { id: 'spoon',    emoji: '🥄', name: 'Golden Spoon',       nameZh: '黃金湯匙',   type: 'click', power: 150,    baseCost: 2500,     desc: '+150 cm per poke', descZh: '每戳 +150 cm' },
-      { id: 'gloves',   emoji: '🧤', name: 'Petting Gloves',     nameZh: '撫摸手套',   type: 'clickpct', power: 0.001, baseCost: 60000 },
-      { id: 'mitts',    emoji: '🐾', name: 'Giant Paw Mitts',    nameZh: '巨掌手套',   type: 'clickpct', power: 0.01,  baseCost: 8e6 },
+      { id: 'gloves',   emoji: '🧤', name: 'Petting Gloves',     nameZh: '撫摸手套',   type: 'clickpct', power: 0.0005, baseCost: 60000 },
       { id: 'feeder',   emoji: '🍚', name: 'Auto Feeder',        nameZh: '自動餵食器', type: 'auto',  power: 1,      baseCost: 50,       desc: '1 cm/s', descZh: '每秒 1 cm' },
       { id: 'truck',    emoji: '🚚', name: 'Feeding Truck',      nameZh: '餵食卡車',   type: 'auto',  power: 8,      baseCost: 500,      desc: '8 cm/s', descZh: '每秒 8 cm' },
       { id: 'cannon',   emoji: '🐟', name: 'Fish Cannon',        nameZh: '魚魚大砲',   type: 'auto',  power: 47,     baseCost: 3000,     desc: '47 cm/s', descZh: '每秒 47 cm' },
@@ -847,7 +846,10 @@
       { id: 'factory',  emoji: '🏭', name: 'Cat Food Factory',   nameZh: '貓食工廠',   type: 'auto',  power: 1400,   baseCost: 40000,    desc: '1.4k cm/s', descZh: '每秒 1.4k cm' },
       { id: 'farm',     emoji: '🌿', name: 'Catnip Farm',        nameZh: '貓草農場',   type: 'auto',  power: 7800,   baseCost: 200000,   desc: '7.8k cm/s', descZh: '每秒 7.8k cm' },
       { id: 'ray',      emoji: '🔬', name: 'Growth Ray',         nameZh: '成長射線',   type: 'auto',  power: 44000,  baseCost: 1600000,  desc: '44k cm/s', descZh: '每秒 44k cm' },
-      { id: 'elevator', emoji: '🛰️', name: 'Orbital Treat Drop', nameZh: '軌道零食空投', type: 'auto',  power: 260000, baseCost: 12000000, desc: '260k cm/s', descZh: '每秒 260k cm' }
+      { id: 'elevator', emoji: '🛰️', name: 'Orbital Treat Drop', nameZh: '軌道零食空投', type: 'auto',  power: 260000, baseCost: 12000000 },
+      { id: 'wormhole', emoji: '🌀', name: 'Snack Wormhole',     nameZh: '零食蟲洞',   type: 'auto',  power: 1.6e6,  baseCost: 9e7 },
+      { id: 'buffet',   emoji: '🌌', name: 'Galactic Buffet',    nameZh: '銀河吃到飽', type: 'auto',  power: 1.2e7,  baseCost: 8e8 },
+      { id: 'sushi',    emoji: '🍣', name: 'Infinite Sushi Belt', nameZh: '無限迴轉壽司', type: 'auto', power: 9e7,   baseCost: 6.5e9 }
     ];
 
     const game = { size: START_SIZE, best: START_SIZE, owned: {}, artOwned: {}, codesOwned: {}, fishCaught: 0 };
@@ -2132,10 +2134,21 @@
         headPitchBase = headBone.rotation.x;
       }
       finishSetup();
-      if ((isLocalDev || location.hash.includes('dev')) && modeActions.idle) showSpeedSlider();
+      maybeShowDevPanel();
     }
 
     let headAnimatedNow = false;
+
+    let devPanelShown = false;
+
+    function maybeShowDevPanel() {
+      if (devPanelShown) return;
+      if (!(isLocalDev || location.hash.includes('dev'))) return;
+      devPanelShown = true;
+      showSpeedSlider();
+    }
+    // adding #dev to the URL pops the panel live — no reload needed
+    window.addEventListener('hashchange', maybeShowDevPanel);
 
     function showSpeedSlider() {
       const box = document.createElement('div');
@@ -2148,10 +2161,14 @@
         <div style="display:flex;gap:8px;align-items:center;">ground sink
           <input id="dev-gsink" type="range" min="0" max="0.25" step="0.005" value="${GROUND_SINK}" style="width:110px"> <span>${GROUND_SINK}</span></div>`;
       const idle = box.querySelector('#dev-idle');
-      idle.addEventListener('input', () => {
-        modeActions.idle.timeScale = parseFloat(idle.value);
-        idle.nextElementSibling.textContent = idle.value;
-      });
+      if (modeActions.idle) {
+        idle.addEventListener('input', () => {
+          modeActions.idle.timeScale = parseFloat(idle.value);
+          idle.nextElementSibling.textContent = idle.value;
+        });
+      } else {
+        idle.disabled = true;
+      }
       const sink = box.querySelector('#dev-sink');
       sink.addEventListener('input', () => {
         planetSink = parseFloat(sink.value);

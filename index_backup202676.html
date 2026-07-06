@@ -632,30 +632,6 @@
     }
   </style>
 
-  <script>
-    // Plain pre-module guard: if the game hasn't booted within 8s (old
-    // webview without import-map support, blocked CDN, no WebGL...), show
-    // a friendly bilingual hint instead of an eternal loading paw.
-    (function () {
-      window.__catBooted = false;
-      setTimeout(function () {
-        if (window.__catBooted) return;
-        var el = document.getElementById('overlay-text');
-        if (el) el.innerHTML =
-          '😿 this browser is having trouble running the game.<br>' +
-          'it works best in <b>Chrome</b> on a computer or phone —<br>' +
-          "if you're inside an app's built-in browser (Telegram, Instagram...),<br>" +
-          'tap the ⋯ menu and choose <b>Open in Browser</b>.<br><br>' +
-          '😿 這個瀏覽器跑不太動這個遊戲。<br>' +
-          '建議用電腦或手機的 <b>Chrome</b> 開啟 —<br>' +
-          '如果你在 App 的內建瀏覽器裡（Telegram、Instagram…），<br>' +
-          '請點 ⋯ 選單，選擇「<b>用瀏覽器開啟</b>」。';
-        var paw = document.querySelector('#overlay .paw');
-        if (paw) { paw.textContent = '😿'; paw.style.animation = 'none'; }
-      }, 8000);
-    })();
-  </script>
-
   <script type="importmap">
   {
     "imports": {
@@ -1241,11 +1217,8 @@
     const overlay = document.getElementById('overlay');
     const overlayText = document.getElementById('overlay-text');
 
-    // in-app webviews (Telegram, Instagram...) give pages a tight memory
-    // budget — iOS kills heavy pages with "a problem repeatedly occurred".
-    // Mobile therefore renders leaner: no MSAA, capped pixel ratio.
-    const renderer = new THREE.WebGLRenderer({ antialias: !isMobile, alpha: true });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 1.5 : 2));
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(stage.clientWidth, stage.clientHeight);
     stage.appendChild(renderer.domElement);
 
@@ -1478,7 +1451,7 @@
     async function buildSatLevel(z) {
       const cx = lon2tx(MAP_LON, z), cy = lat2ty(MAP_LAT, z);
       // close-up zooms get a double-resolution stitch for a sharper start
-      const size = (z >= 17 && !isMobile) ? 2048 : 1024; // phones get 4x less texture memory
+      const size = z >= 17 ? 2048 : 1024;
       const half = size / 2;
       const reach = size / 256 / 2 + 1;
       const c = document.createElement('canvas');
@@ -1547,13 +1520,6 @@
       if (!sat.anyLoaded) {
         sat.anyLoaded = true;
         document.getElementById('map-attrib').style.display = 'block';
-      }
-      // keep GPU memory bounded: only nearby zoom levels stay cached
-      for (const key of [...sat.cache.keys()]) {
-        if (Math.abs(key - z) > 2) {
-          sat.cache.get(key).tex.dispose();
-          sat.cache.delete(key);
-        }
       }
     }
 
@@ -2673,7 +2639,6 @@
     const clock = new THREE.Clock();
 
     function animate() {
-      window.__catBooted = true; // first frame = the guard stands down
       requestAnimationFrame(animate);
       const delta = Math.min(clock.getDelta(), 0.1);
       const t = clock.elapsedTime;

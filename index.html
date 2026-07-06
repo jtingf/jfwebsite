@@ -1858,7 +1858,9 @@
       },
       (progress) => {
         if (progress.total > 0) {
-          overlayText.textContent = `waking up the cat... ${Math.round(100 * progress.loaded / progress.total)}%`;
+          // gzip on the server makes 'total' the compressed size while 'loaded'
+          // counts decompressed bytes — so this can exceed 100%. Clamp it.
+          overlayText.textContent = `waking up the cat... ${Math.min(100, Math.round(100 * progress.loaded / progress.total))}%`;
         }
       },
       (error) => {

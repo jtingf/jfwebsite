@@ -72,7 +72,7 @@
 
     .nav-links a:hover {
       background-color: #555;
-      transform: scale(1.05);
+      filter: brightness(1.12);
     }
 
     .shop-link {
@@ -102,7 +102,7 @@
       transition: background 0.3s, transform 0.3s;
     }
 
-    #lang-btn:hover { background: #777; transform: scale(1.05); }
+    #lang-btn:hover { background: #777; filter: brightness(1.12); }
 
     /* ------- 3D stage ------- */
     #stage {
@@ -313,7 +313,7 @@
       transition: transform 0.15s, border-color 0.15s;
     }
 
-    #pose-buttons button:hover:not(:disabled) { transform: scale(1.08); }
+    #pose-buttons button:hover:not(:disabled) { filter: brightness(1.06); border-color: #9adfe9; }
     #pose-buttons button.active { border-color: #00cfe8; background: #e6fafd; }
     #pose-buttons button:disabled { opacity: 0.4; cursor: default; }
 
@@ -341,6 +341,8 @@
     }
 
     /* ------- top-right game buttons ------- */
+    .game-btn:hover { filter: brightness(1.1); }
+
     .game-btn {
       background: #00cfe8;
       color: white;
@@ -790,6 +792,8 @@
     const STAND_ANIM = './stand-pose.vrma';  // 🧍 button (null / missing = code-made pose)
     const IDLE_SPEED = 0.33;                 // idle playback speed (1 = original)
     const BG_SKY = './sky.jpg';              // equirect sky: .jpg/.png or .hdr (missing = paw pattern)
+    const SPACE_SKY = './space.jpg';         // sky swaps to this once he outgrows the Earth
+    const SPACE_AT_M = 1.2742e7;             // Earth's diameter — the space threshold
     const EYE_TRACKING = false;
     const GROUND_MODE = 'satellite';         // 'satellite' = real imagery (Esri, free w/ attribution),
                                              // 'map' = drawn map, 'plain' = blue disc
@@ -834,6 +838,8 @@
     const SHOP_ITEMS = [
       { id: 'snack',    emoji: '🍤', name: 'Protein Snack',      nameZh: '蛋白點心',   type: 'click', power: 10,     baseCost: 100,      desc: '+10 cm per poke', descZh: '每戳 +10 cm' },
       { id: 'spoon',    emoji: '🥄', name: 'Golden Spoon',       nameZh: '黃金湯匙',   type: 'click', power: 150,    baseCost: 2500,     desc: '+150 cm per poke', descZh: '每戳 +150 cm' },
+      { id: 'gloves',   emoji: '🧤', name: 'Petting Gloves',     nameZh: '撫摸手套',   type: 'clickpct', power: 0.001, baseCost: 60000 },
+      { id: 'mitts',    emoji: '🐾', name: 'Giant Paw Mitts',    nameZh: '巨掌手套',   type: 'clickpct', power: 0.01,  baseCost: 8e6 },
       { id: 'feeder',   emoji: '🍚', name: 'Auto Feeder',        nameZh: '自動餵食器', type: 'auto',  power: 1,      baseCost: 50,       desc: '1 cm/s', descZh: '每秒 1 cm' },
       { id: 'truck',    emoji: '🚚', name: 'Feeding Truck',      nameZh: '餵食卡車',   type: 'auto',  power: 8,      baseCost: 500,      desc: '8 cm/s', descZh: '每秒 8 cm' },
       { id: 'cannon',   emoji: '🐟', name: 'Fish Cannon',        nameZh: '魚魚大砲',   type: 'auto',  power: 47,     baseCost: 3000,     desc: '47 cm/s', descZh: '每秒 47 cm' },
@@ -844,24 +850,35 @@
       { id: 'elevator', emoji: '🛰️', name: 'Orbital Treat Drop', nameZh: '軌道零食空投', type: 'auto',  power: 260000, baseCost: 12000000, desc: '260k cm/s', descZh: '每秒 260k cm' }
     ];
 
-    const game = { size: START_SIZE, best: START_SIZE, owned: {}, artOwned: {}, codesOwned: {} };
+    const game = { size: START_SIZE, best: START_SIZE, owned: {}, artOwned: {}, codesOwned: {}, fishCaught: 0 };
     SHOP_ITEMS.forEach(i => game.owned[i.id] = 0);
     let gameActive = false;
 
+    // every 5 golden fish caught doubles EVERYTHING the shop produces
+    const FISH_PER_UPGRADE = 5;
+    const shopMult = () => Math.pow(2, Math.floor(game.fishCaught / FISH_PER_UPGRADE));
+
     const costOf = (item) => Math.ceil(item.baseCost * Math.pow(COST_GROWTH, game.owned[item.id]));
-    const clickPower = () => CLICK_BASE + SHOP_ITEMS
-      .filter(i => i.type === 'click')
-      .reduce((sum, i) => sum + i.power * game.owned[i.id], 0);
+    const clickPower = () => {
+      const flat = CLICK_BASE + SHOP_ITEMS
+        .filter(i => i.type === 'click')
+        .reduce((sum, i) => sum + i.power * game.owned[i.id], 0);
+      // percentage items make clicking matter at ANY size
+      const pct = SHOP_ITEMS
+        .filter(i => i.type === 'clickpct')
+        .reduce((sum, i) => sum + i.power * game.owned[i.id], 0);
+      return (flat + game.size * pct) * shopMult();
+    };
     const cps = () => SHOP_ITEMS
       .filter(i => i.type === 'auto')
-      .reduce((sum, i) => sum + i.power * game.owned[i.id], 0);
+      .reduce((sum, i) => sum + i.power * game.owned[i.id], 0) * shopMult();
 
     // ---------- save / load ----------
     const SAVE_KEY = 'growcat-save';
 
     function saveGame() {
       try {
-        localStorage.setItem(SAVE_KEY, JSON.stringify({ size: game.size, best: game.best, owned: game.owned, artOwned: game.artOwned, codesOwned: game.codesOwned }));
+        localStorage.setItem(SAVE_KEY, JSON.stringify({ size: game.size, best: game.best, owned: game.owned, artOwned: game.artOwned, codesOwned: game.codesOwned, fishCaught: game.fishCaught }));
       } catch (e) { /* private mode etc. */ }
     }
 
@@ -875,6 +892,7 @@
         else game.best = Math.max(game.best, game.size);
         if (data.artOwned) game.artOwned = data.artOwned;
         if (data.codesOwned) game.codesOwned = data.codesOwned;
+        if (Number.isInteger(data.fishCaught) && data.fishCaught >= 0) game.fishCaught = data.fishCaught;
         if (data.owned) {
           SHOP_ITEMS.forEach(i => {
             const n = data.owned[i.id];
@@ -928,7 +946,11 @@
         camHint: '🖐️ drag to look around · scroll / pinch to zoom',
         qualityLite: '⚡ smooth mode on',
         qualityHigh: '✨ high graphics on (fully applies after a reload)',
-        goldFish: (x) => `🐟 golden fish! +${x}`,
+        goldFish: (x, have, need) => `🐟 golden fish! +${x} (${have}/${need} to shop upgrade)`,
+        fishUpgrade: (m) => `🐟🐟🐟🐟🐟 FEED SHOP UPGRADED — everything is now ×${m}!`,
+        descPoke: (x) => `+${x} per poke`,
+        descPct: (p) => `+${p}% of his size per poke`,
+        descSec: (x) => `+${x} per second`,
         navShop: 'Shop', navPortfolio: 'Portfolio', siteLabel: 'jtingf.com ! links>>',
       },
       zh: {
@@ -952,7 +974,11 @@
         camHint: '🖐️ 拖曳旋轉視角 · 滾輪或雙指縮放',
         qualityLite: '⚡ 流暢模式已開啟',
         qualityHigh: '✨ 高畫質已開啟（重新整理後完整生效）',
-        goldFish: (x) => `🐟 黃金魚魚！+${x}`,
+        goldFish: (x, have, need) => `🐟 黃金魚魚！+${x}（升級商店 ${have}/${need}）`,
+        fishUpgrade: (m) => `🐟×5！餵食商店升級 — 全部效果 ×${m}！`,
+        descPoke: (x) => `每戳 +${x}`,
+        descPct: (p) => `每戳 +身高的 ${p}%`,
+        descSec: (x) => `每秒 +${x}`,
         navShop: '商店', navPortfolio: '作品集', siteLabel: 'jtingf.com ！連結>>',
       }
     };
@@ -1041,14 +1067,34 @@
       itemButtons[item.id] = btn;
     });
 
+    function fmtPct(x) {
+      const p = x * 100;
+      return p >= 10 ? p.toFixed(0) : p >= 1 ? p.toFixed(1) : p.toFixed(2);
+    }
+
     function refreshShop() {
+      const mult = shopMult();
       SHOP_ITEMS.forEach((item) => {
         const btn = itemButtons[item.id];
         const cost = costOf(item);
+        // descriptions in readable units (cm -> m -> km automatically),
+        // scaled live by the fish multiplier
+        const eff = item.power * mult;
+        const desc = item.type === 'auto' ? t('descSec', formatCm(eff))
+          : item.type === 'clickpct' ? t('descPct', fmtPct(eff))
+          : t('descPoke', formatCm(eff));
+        btn.querySelector('.desc').textContent = desc;
         btn.querySelector('.cost').textContent = t('costs', formatCost(cost));
         btn.querySelector('.owned').textContent = game.owned[item.id] || '';
         btn.disabled = game.size < cost;
       });
+    }
+
+    function refreshShopTitle() {
+      const m = shopMult();
+      const tag = m > 1 ? ` ×${m}` : '';
+      document.getElementById('shop-title').textContent = t('shopTitle') + tag;
+      document.getElementById('shop-toggle').textContent = t('shopBtn') + tag;
     }
     setInterval(() => {
       if (!gameActive) return;
@@ -1085,6 +1131,8 @@
       game.best = START_SIZE;
       game.artOwned = {};
       game.codesOwned = {};
+      game.fishCaught = 0;
+      refreshShopTitle();
       refreshGallery();
       SHOP_ITEMS.forEach(i => game.owned[i.id] = 0);
       saveGame();
@@ -1109,7 +1157,7 @@
       document.getElementById('btn-play').textContent = t('play');
       document.getElementById('btn-later').textContent = t('later');
       playLaterBtn.textContent = t('playLater');
-      document.getElementById('shop-title').textContent = t('shopTitle');
+      refreshShopTitle();
       document.getElementById('shop-footer-text').textContent = t('shopFooter');
       document.getElementById('gallery-title').textContent = t('galleryTitle');
       document.getElementById('rewards-title').textContent = t('rewardsTitle');
@@ -1117,7 +1165,6 @@
       document.getElementById('site-label').textContent = t('siteLabel');
       document.getElementById('nav-shop-text').textContent = t('navShop');
       document.getElementById('nav-portfolio-text').textContent = t('navPortfolio');
-      document.getElementById('shop-toggle').textContent = t('shopBtn');
       // the button shows what you'd switch TO, not what you're on
       document.getElementById('lang-btn').textContent = lang === 'zh' ? '🌐 EN' : '🌐 中文';
       if (!resetArmed) resetBtn.textContent = t('reset');
@@ -1125,7 +1172,6 @@
       SHOP_ITEMS.forEach((item) => {
         const btn = itemButtons[item.id];
         btn.querySelector('.name').textContent = (lang === 'zh' && item.nameZh) ? item.nameZh : item.name;
-        btn.querySelector('.desc').textContent = (lang === 'zh' && item.descZh) ? item.descZh : item.desc;
       });
       // warning card
       document.getElementById('art-warn-title').textContent = t('artWarnTitle');
@@ -1219,13 +1265,22 @@
       fish.addEventListener('pointerdown', (e) => {
         e.stopPropagation();
         clearTimeout(swimAway);
-        // big burst: 15% of his current size, so it's always worth chasing
-        const gain = Math.ceil(Math.max(game.size * 0.15, clickPower() * 20));
+        // flat 10% of his current size — and every catch counts toward
+        // the shop upgrade (5 fish = everything doubles)
+        const gain = Math.ceil(Math.max(game.size * 0.10, 30));
         game.size += gain;
+        game.fishCaught++;
         bumpBest();
         updateHUD();
         bounceSize();
-        showToast(t('goldFish', formatCost(gain)));
+        saveGame();
+        if (game.fishCaught % FISH_PER_UPGRADE === 0) {
+          refreshShopTitle();
+          refreshShop();
+          showToast(t('fishUpgrade', shopMult()), 6000);
+        } else {
+          showToast(t('goldFish', formatCost(gain), game.fishCaught % FISH_PER_UPGRADE, FISH_PER_UPGRADE));
+        }
         spawnHearts(e.clientX, e.clientY);
         spawnPlusCm(e.clientX, e.clientY, gain);
         fish.remove();
@@ -1624,6 +1679,36 @@
       }).catch(() => { /* procedural planet stays */ });
     }
 
+    // ---------- sky state (normal sky <-> space past Earth size) ----------
+    let skyTex = null;
+    let spaceTex = null;
+    let spaceLoading = false;
+    let inSpace = false;
+
+    function updateSky(catHeightM) {
+      if (!SPACE_SKY) return;
+      // pre-load space early so the swap moment doesn't hitch
+      if (!spaceTex && !spaceLoading && catHeightM > SPACE_AT_M * 0.2) {
+        spaceLoading = true;
+        new THREE.TextureLoader().loadAsync(fresh(SPACE_SKY)).then((tx) => {
+          tx.colorSpace = THREE.SRGBColorSpace;
+          tx.mapping = THREE.EquirectangularReflectionMapping;
+          renderer.initTexture(tx);
+          spaceTex = tx;
+          console.log('[cat] space sky ready');
+        }).catch(() => { spaceLoading = false; SPACE_SKY_FAILED = true; });
+      }
+      const wantSpace = catHeightM >= SPACE_AT_M;
+      if (wantSpace && !inSpace && spaceTex) {
+        scene.background = spaceTex;
+        inSpace = true;
+      } else if (!wantSpace && inSpace) {
+        scene.background = skyTex; // null = paw pattern, also fine
+        inSpace = false;
+      }
+    }
+    let SPACE_SKY_FAILED = false;
+
     // ---------- optional sky (equirect .hdr or .jpg/.png) ----------
     (async () => {
       try {
@@ -1640,7 +1725,8 @@
           tex.colorSpace = THREE.SRGBColorSpace;
         } else return;
         tex.mapping = THREE.EquirectangularReflectionMapping;
-        scene.background = tex;
+        skyTex = tex;
+        if (!inSpace) scene.background = tex;
         console.log('[cat] sky loaded:', BG_SKY);
       } catch (e) {
         console.log(`[cat] no ${BG_SKY} found — keeping the paw pattern background`);
@@ -2024,9 +2110,16 @@
 
         mixer.addEventListener('finished', (e) => {
           if (e.action !== helloAction) return;
-          if (animMode === 'hello') setAnimMode(modeActions.idle ? 'idle' : 'sit');
-          showPrompt();
+          try {
+            if (animMode === 'hello') setAnimMode(modeActions.idle ? 'idle' : 'sit');
+          } catch (err) {
+            console.error('[cat] hello transition error:', err);
+          }
+          showPrompt(); // runs even if the transition above hiccups
         });
+        // failsafe: if 'finished' never fires (background-tab throttling,
+        // event quirks), the prompt still appears shortly after the hello
+        setTimeout(showPrompt, (helloClip.duration / HELLO_SPEED) * 1000 + 4000);
       } else {
         setAnimMode(modeActions.idle ? 'idle' : 'sit');
         setTimeout(showPrompt, 1200);
@@ -2039,7 +2132,7 @@
         headPitchBase = headBone.rotation.x;
       }
       finishSetup();
-      if (isLocalDev && modeActions.idle) showSpeedSlider();
+      if ((isLocalDev || location.hash.includes('dev')) && modeActions.idle) showSpeedSlider();
     }
 
     let headAnimatedNow = false;
@@ -2499,12 +2592,15 @@
         if (onCat) {
           onPoke(e.clientX, e.clientY);
           info.poked = true;
+          // NOTE: no pointer capture for pokes — a capture that fails to
+          // release would swallow clicks on overlays (the "prompt buttons
+          // don't work" bug). Only panning needs capture.
         } else {
           panning = true;
           lastPX = e.clientX;
           lastPY = e.clientY;
+          renderer.domElement.setPointerCapture(e.pointerId);
         }
-        renderer.domElement.setPointerCapture(e.pointerId);
       } else if (pointers.size === 1) {
         panning = false;
         const other = [...pointers.values()][0];
@@ -2831,6 +2927,8 @@
         boingV += (-140 * boingP - 11 * boingV) * delta;
         boingP = THREE.MathUtils.clamp(boingP + boingV * delta, -0.22, 0.22);
         vrm.scene.scale.set(1 - boingP * 0.55, 1 + boingP, 1 - boingP * 0.55);
+        updateSky(currentCatHeight);
+
         // settle his feet slightly into the surface — the flat ground needs
         // about half the depth the curved planet ball does
         const onBall = GROUND_MODE !== 'plain' && currentCatHeight >= PLANET_PHASE_M;

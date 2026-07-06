@@ -241,18 +241,6 @@
 
     .reward-row.locked { color: #9ab; font-style: italic; }
 
-    #rewards-hint {
-      margin: 2px 0 6px;
-      font-size: 11.5px;
-      color: #8a9;
-    }
-
-    .reward-row a {
-      color: #00a8bd;
-      font-weight: bold;
-      text-decoration: underline;
-    }
-
     /* ------- golden fish event ------- */
     #gold-fish {
       position: absolute;
@@ -739,7 +727,6 @@
         <h3><span id="gallery-title">🎨 growth gallery</span> <button id="gallery-close">✕</button></h3>
         <div id="gallery-grid"></div>
         <h3 id="rewards-title" style="margin-top:14px;">🎁 rewards</h3>
-        <p id="rewards-hint"></p>
         <div id="rewards-list"></div>
       </div>
     </div>
@@ -821,9 +808,6 @@
 
     const isLocalDev = ['localhost', '127.0.0.1', ''].includes(location.hostname);
     const isMobile = matchMedia('(pointer: coarse)').matches;
-    // 'lite' = reduced-effects mode. Mobile starts in it; desktops get it
-    // automatically if the performance governor sees them struggling.
-    let lite = isMobile;
     const fresh = (url) => isLocalDev ? `${url}?v=${Date.now()}` : url;
 
     // ============================================================
@@ -919,12 +903,10 @@
         rewardUnlockFor: (off, l) => `🎁 special reward — unlock for ${l}`,
         artToast: (l) => `🎨 new artwork unlocked — ${l}! check the gallery`,
         rewardsTitle: '🎁 rewards',
-        rewardRow: (code, off) => `code “${code}” — ${off} off at <a href="https://jtingf.shop" target="_blank">jtingf.shop</a>, my fursuit supplies shop!`,
-        rewardToast: (code, off) => `🎉 code “${code}” unlocked — ${off} off fursuit supplies at jtingf.shop!`,
-        rewardsHint: 'codes are for jtingf.shop (my fursuit supplies shop) — not the feed shop 😹',
+        rewardRow: (code, off) => `code “${code}” — ${off} off in the shop!`,
+        rewardToast: (code, off) => `🎉 code “${code}” unlocked — ${off} off in the shop!`,
         lightYears: 'light-years',
         camHint: '🖐️ drag to look around · scroll / pinch to zoom',
-        perfLite: '⚡ performance mode on — smoother play on this device',
         goldFish: (x) => `🐟 golden fish! +${x}`,
         navShop: 'Shop', navPortfolio: 'Portfolio', siteLabel: 'jtingf.com ! links>>',
       },
@@ -942,12 +924,10 @@
         rewardUnlockFor: (off, l) => `🎁 特別獎勵 — 花 ${l} 解鎖`,
         artToast: (l) => `🎨 解鎖新作品 — ${l}！快去畫廊看看`,
         rewardsTitle: '🎁 獎勵',
-        rewardRow: (code, off) => `折扣碼「${code}」— <a href="https://jtingf.shop" target="_blank">jtingf.shop</a>（我的獸裝材料店）${off} 折扣！`,
-        rewardToast: (code, off) => `🎉 解鎖折扣碼「${code}」— jtingf.shop 獸裝材料 ${off} 折扣！`,
-        rewardsHint: '折扣碼用在 jtingf.shop（我的獸裝材料店）— 不是餵食商店喔 😹',
+        rewardRow: (code, off) => `折扣碼「${code}」— 商店 ${off} 折扣！`,
+        rewardToast: (code, off) => `🎉 解鎖折扣碼「${code}」— 商店 ${off} 折扣！`,
         lightYears: '光年',
         camHint: '🖐️ 拖曳旋轉視角 · 滾輪或雙指縮放',
-        perfLite: '⚡ 效能模式已開啟 — 讓這台裝置跑得更順',
         goldFish: (x) => `🐟 黃金魚魚！+${x}`,
         navShop: '商店', navPortfolio: '作品集', siteLabel: 'jtingf.com ！連結>>',
       }
@@ -1007,7 +987,7 @@
     }
 
     function bounceSize() {
-      if (lite) return; // forced reflow per tap janks weak devices
+      if (isMobile) return; // forced reflow per tap janks phones
       sizeValue.style.animation = '';
       void sizeValue.offsetWidth;
       sizeValue.style.animation =
@@ -1109,7 +1089,6 @@
       document.getElementById('shop-footer-text').textContent = t('shopFooter');
       document.getElementById('gallery-title').textContent = t('galleryTitle');
       document.getElementById('rewards-title').textContent = t('rewardsTitle');
-      document.getElementById('rewards-hint').textContent = t('rewardsHint');
       document.getElementById('site-label').textContent = t('siteLabel');
       document.getElementById('nav-shop-text').textContent = t('navShop');
       document.getElementById('nav-portfolio-text').textContent = t('navPortfolio');
@@ -1499,7 +1478,7 @@
     async function buildSatLevel(z) {
       const cx = lon2tx(MAP_LON, z), cy = lat2ty(MAP_LAT, z);
       // close-up zooms get a double-resolution stitch for a sharper start
-      const size = (z >= 17 && !lite) ? 2048 : 1024; // lite devices get 4x less texture memory
+      const size = (z >= 17 && !isMobile) ? 2048 : 1024; // phones get 4x less texture memory
       const half = size / 2;
       const reach = size / 256 / 2 + 1;
       const c = document.createElement('canvas');
@@ -1559,7 +1538,6 @@
     function applySatLevel(z) {
       const level = sat.cache.get(z);
       sat.current = { z, ...level };
-      renderer.initTexture(level.tex); // upload before it becomes visible
       satPlane.material.map = level.tex;
       satPlane.material.needsUpdate = true;
       // blend the surrounding disc into the imagery
@@ -1613,7 +1591,6 @@
 
     if (sat.enabled) {
       buildEarthTexture().then((tex) => {
-        renderer.initTexture(tex); // upload to GPU now, not at the transition
         planet.material.map = tex;
         planet.material.needsUpdate = true;
         console.log('[cat] planet is wearing real Earth imagery');
@@ -2085,7 +2062,6 @@
 
     function finishSetup() {
       measureModel();
-      renderer.compile(scene, camera); // compile shaders now, not mid-game
       vrm.springBoneManager?.reset?.();
       updateHUD();
       refreshShop();
@@ -2406,8 +2382,7 @@
         const unlocked = !!game.codesOwned[i];
         row.className = 'reward-row' + (unlocked ? '' : ' locked') +
           (!unlocked && game.size >= r.cm ? ' affordable' : '');
-        if (unlocked) row.innerHTML = t('rewardRow', r.code, r.off);
-        else row.textContent = t('rewardUnlockFor', r.off, r.label);
+        row.textContent = unlocked ? t('rewardRow', r.code, r.off) : t('rewardUnlockFor', r.off, r.label);
         if (!unlocked) {
           row.style.cursor = 'pointer';
           row.addEventListener('click', () => {
@@ -2476,15 +2451,9 @@
       updatePointer(clientX, clientY);
       raycaster.setFromCamera(pointerNDC, camera);
       // raycasting a skinned mesh transforms EVERY vertex by its bones —
-      // fine on a fast PC, brutal on phones and weak desktops (Pi etc).
-      // Lite devices use only the cheap invisible hit sphere; and if the
-      // precise test proves slow on THIS machine, switch to lite for good.
-      if (!lite) {
-        const t0 = performance.now();
-        const hit = raycaster.intersectObject(vrm.scene, true).length > 0;
-        if (performance.now() - t0 > 12) enterLite('slow raycast');
-        if (hit) return true;
-      }
+      // tens of ms per tap on phones, which froze the render loop during
+      // rapid tapping. Mobile uses only the cheap invisible hit sphere.
+      if (!isMobile && raycaster.intersectObject(vrm.scene, true).length > 0) return true;
       return raycaster.intersectObject(hitProxy, false).length > 0;
     }
 
@@ -2576,7 +2545,7 @@
         bounceSize();
         spawnPlusCm(px, py, gain);
       }
-      if (!lite) boingV -= 5; // spring squash only when the device can afford it
+      if (!isMobile) boingV -= 5; // spring squash is desktop-only (mobile perf)
 
       if (vrm.expressionManager) {
         if (!activeExpression) {
@@ -2645,17 +2614,17 @@
       // deepest at 5 km — logarithmic so it deepens the whole way)
       // mobile reuses pooled players; desktop overlaps freely
       const idx = Math.floor(Math.random() * SOUND_FILES.length);
-      const audio = lite ? meowPool[idx] : new Audio(SOUND_FILES[idx]);
+      const audio = isMobile ? meowPool[idx] : new Audio(SOUND_FILES[idx]);
       audio.preservesPitch = false;
       audio.webkitPreservesPitch = false;
       audio.playbackRate = pitch;
-      if (lite) audio.currentTime = 0;
+      if (isMobile) audio.currentTime = 0;
       audio.play().catch(() => {});
     }
 
     function spawnHearts(px, py) {
       const emojis = ['💖', '💕', '❤️', '💗', '🩷'];
-      const n = lite ? 1 : 3 + Math.floor(Math.random() * 3);
+      const n = isMobile ? 1 : 3 + Math.floor(Math.random() * 3);
       for (let i = 0; i < n; i++) {
         const heart = document.createElement('div');
         heart.className = 'heart';
@@ -2673,7 +2642,7 @@
     let mobilePlusEl = null;
 
     function spawnPlusCm(px, py, gain) {
-      if (lite) {
+      if (isMobile) {
         if (!mobilePlusEl) {
           mobilePlusEl = document.createElement('div');
           mobilePlusEl.className = 'plus-cm';
@@ -2700,41 +2669,12 @@
       setTimeout(() => el.remove(), 1300);
     }
 
-    // ---------- performance governor ----------
-    // Watches real FPS after things settle; a device that can't hold a
-    // decent frame rate gets moved to lite mode (fewer effects, lower
-    // pixel ratio). Fast machines are never touched.
-    function enterLite(reason) {
-      if (lite) return;
-      lite = true;
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25));
-      console.log('[cat] performance mode on (' + reason + ')');
-      setStatus(t('perfLite'));
-    }
-
-    let fpsFrames = 0;
-    let fpsWindowStart = 0;
-    let fpsWarmedUp = false;
-
-    function governFps(now) {
-      if (lite || !measured) return;
-      if (fpsWindowStart === 0) { fpsWindowStart = now; fpsFrames = 0; return; }
-      fpsFrames++;
-      if (now - fpsWindowStart < 4000) return;
-      const fps = fpsFrames * 1000 / (now - fpsWindowStart);
-      fpsFrames = 0;
-      fpsWindowStart = now;
-      if (!fpsWarmedUp) { fpsWarmedUp = true; return; } // skip the loading window
-      if (fps < 38) enterLite(`${fps.toFixed(0)} fps`);
-    }
-
     // ---------- render loop ----------
     const clock = new THREE.Clock();
 
     function animate() {
       window.__catBooted = true; // first frame = the guard stands down
       requestAnimationFrame(animate);
-      governFps(performance.now());
       const delta = Math.min(clock.getDelta(), 0.1);
       const t = clock.elapsedTime;
 

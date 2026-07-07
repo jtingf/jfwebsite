@@ -794,6 +794,8 @@
     const BG_SKY = './sky.jpg';              // equirect sky: .jpg/.png or .hdr (missing = paw pattern)
     const SPACE_SKY = './space.jpg';         // sky swaps to this once he outgrows the Earth
     const SPACE_AT_M = 1.2742e7;             // Earth's diameter — the space threshold
+    const OVERGROW_AT_M = 1.4e11;            // ~100x the Sun: the camera gives up and
+                                             // he starts outgrowing the browser itself
     const EYE_TRACKING = false;
     const GROUND_MODE = 'satellite';         // 'satellite' = real imagery (Esri, free w/ attribution),
                                              // 'map' = drawn map, 'plain' = blue disc
@@ -949,6 +951,7 @@
         lightYears: 'light-years',
         camHint: '🖐️ drag to look around · scroll / pinch to zoom',
         qualityLite: '⚡ smooth mode on',
+        overgrow: '🙀 he is too big for the camera now. there is no containing him.',
         qualityHigh: '✨ high graphics on (fully applies after a reload)',
         goldFish: (x, have, need) => `🐟 golden fish! +${x} (${have}/${need} to shop upgrade)`,
         fishUpgrade: (m) => `🐟🐟🐟🐟🐟 FEED SHOP UPGRADED — everything is now ×${m}!`,
@@ -977,6 +980,7 @@
         lightYears: '光年',
         camHint: '🖐️ 拖曳旋轉視角 · 滾輪或雙指縮放',
         qualityLite: '⚡ 流暢模式已開啟',
+        overgrow: '🙀 攝影機已經裝不下他了。沒有東西能困住他。',
         qualityHigh: '✨ 高畫質已開啟（重新整理後完整生效）',
         goldFish: (x, have, need) => `🐟 黃金魚魚！+${x}（升級商店 ${have}/${need}）`,
         fishUpgrade: (m) => `🐟×5！餵食商店升級 — 全部效果 ×${m}！`,
@@ -1371,6 +1375,7 @@
     let expressionPulse = 0;
     let activeExpression = null;
     let currentCatHeight = Math.max(game.size, START_SIZE) / 100; // real metres, smoothed
+    let overgrowAnnounced = false;
     let facing = 1;
 
     // ---------- ground: zooming map + planet ball ----------
@@ -2945,13 +2950,27 @@
         // him visibly bouncing instead of freezing until you stop
         boingV += (-140 * boingP - 11 * boingV) * delta;
         boingP = THREE.MathUtils.clamp(boingP + boingV * delta, -0.22, 0.22);
-        vrm.scene.scale.set(1 - boingP * 0.55, 1 + boingP, 1 - boingP * 0.55);
+        // ENDGAME: past ~100x the Sun, the camera stops keeping up.
+        // His render scale grows beyond the frame — zooming out only
+        // postpones it. There is no containing him. (capped so float
+        // math stays sane; by then the screen is pure cat anyway)
+        const overgrow = Math.min(Math.max(1, currentCatHeight / OVERGROW_AT_M), 5000);
+        if (overgrow > 1 && !overgrowAnnounced) {
+          overgrowAnnounced = true;
+          showToast(t('overgrow'), 7000);
+        }
+
+        vrm.scene.scale.set(
+          (1 - boingP * 0.55) * overgrow,
+          (1 + boingP) * overgrow,
+          (1 - boingP * 0.55) * overgrow
+        );
         updateSky(currentCatHeight);
 
         // settle his feet slightly into the surface — the flat ground needs
         // about half the depth the curved planet ball does
         const onBall = GROUND_MODE !== 'plain' && currentCatHeight >= PLANET_PHASE_M;
-        vrm.scene.position.y = -modelMinY * (1 + boingP) - (onBall ? planetSink : groundSink) * modelHeight;
+        vrm.scene.position.y = (-modelMinY * (1 + boingP) - (onBall ? planetSink : groundSink) * modelHeight) * overgrow;
 
         // camera frames whichever is taller on screen: the cat or the refs
         const ref = REFS[refIndex];
@@ -2962,8 +2981,8 @@
         updateCameraFromOrbit();
 
         // --- ground: zooming map, then a shrinking planet under him ---
-        hitProxy.position.set(0, modelHeight * 0.5, 0);
-        hitProxy.scale.setScalar(Math.max(modelHeight * 0.55, orbit.radius * orbit.userZoom * 0.07));
+        hitProxy.position.set(0, modelHeight * 0.5 * overgrow, 0);
+        hitProxy.scale.setScalar(Math.max(modelHeight * 0.55 * overgrow, orbit.radius * orbit.userZoom * 0.07));
 
         const groundR = Math.max(orbit.radius * orbit.userZoom * 6, 10);
         const inBallPhase = GROUND_MODE !== 'plain' && currentCatHeight >= PLANET_PHASE_M;
@@ -3002,7 +3021,7 @@
         }
 
         // fake shadow makes no sense on a curved marble — flat ground only
-        const shadowSize = modelHeight * 0.35;
+        const shadowSize = modelHeight * 0.35 * overgrow;
         shadow.visible = !inBallPhase;
         shadow.scale.setScalar(shadowSize);
 

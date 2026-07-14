@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<meta name="theme-color" content="#0e1216">
+<title>Fan Control</title>
+<style>
+  :root{
+    --housing:#0e1216;      /* equipment case */
+    --panel:#171d24;        /* faceplate */
+    --panel-edge:#232c36;
+    --readout:#ffb454;      /* amber instrument display */
+    --readout-dim:#7a5b31;
+    --ink:#aeb9c4;          /* panel lettering */
+    --ink-dim:#5c6874;
+    --ok:#5dd39e;
+    --warn:#ff6b6b;
+    --mono:ui-monospace,'SF Mono','Cascadia Mono','Roboto Mono',Menlo,monospace;
+    --sans:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    background:var(--housing);
+    color:var(--ink);
+    font-family:var(--sans);
+    display:flex;flex-direction:column;align-items:center;
+    padding:16px 16px calc(24px + env(safe-area-inset-bottom));
+    max-width:430px;margin:0 auto;
+  }
+
+  /* ---- header / link status ---- */
+  header{
+    width:100%;display:flex;align-items:center;justify-content:space-between;
+    padding:4px 2px 14px;
+  }
+  .title{font-family:var(--mono);font-size:13px;letter-spacing:.22em;color:var(--ink-dim)}
+  #connectBtn{
+    font:600 13px var(--sans);letter-spacing:.04em;
+    background:var(--panel);color:var(--ink);
+    border:1px solid var(--panel-edge);border-radius:8px;
+    padding:9px 16px;cursor:pointer;
+  }
+  #connectBtn.connected{color:var(--ok);border-color:#2c4438}
+  #connectBtn:active{transform:translateY(1px)}
+
+  /* ---- gauge ---- */
+  .gauge-wrap{position:relative;width:min(78vw,300px);margin:8px 0 4px}
+  .gauge-wrap svg{display:block;width:100%;height:auto}
+  .arc-bg{stroke:var(--panel-edge)}
+  .arc-fg{stroke:var(--readout);transition:stroke-dashoffset .25s ease}
+  .gauge-center{
+    position:absolute;inset:0;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:2px;
+  }
+  #speedNum{
+    font-family:var(--mono);font-size:clamp(48px,17vw,68px);font-weight:600;
+    color:var(--readout);line-height:1;font-variant-numeric:tabular-nums;
+    text-shadow:0 0 24px rgba(255,180,84,.25);
+  }
+  #speedNum.stale{color:var(--readout-dim);text-shadow:none}
+  .unit{font-family:var(--mono);font-size:13px;letter-spacing:.3em;color:var(--ink-dim)}
+
+  /* spinning blade, speed-mapped */
+  .blade{
+    width:26px;height:26px;margin-top:10px;color:var(--ink-dim);
+    animation:spin 4s linear infinite;animation-play-state:paused;
+  }
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @media (prefers-reduced-motion:reduce){.blade{animation:none}}
+
+  /* ---- magnet chip ---- */
+  #magChip{
+    font-family:var(--mono);font-size:11px;letter-spacing:.18em;
+    border:1px solid var(--panel-edge);border-radius:999px;
+    padding:6px 14px;color:var(--ink-dim);margin:6px 0 18px;
+    transition:color .2s,border-color .2s;
+  }
+  #magChip.active{color:var(--readout);border-color:var(--readout-dim)}
+
+  /* ---- slider ---- */
+  .block{width:100%;background:var(--panel);border:1px solid var(--panel-edge);
+    border-radius:14px;padding:16px;margin-bottom:12px}
+  .block label{
+    display:flex;justify-content:space-between;
+    font-family:var(--mono);font-size:11px;letter-spacing:.2em;color:var(--ink-dim);
+    margin-bottom:12px;
+  }
+  #tgtVal{color:var(--ink)}
+  input[type=range]{
+    -webkit-appearance:none;appearance:none;width:100%;height:44px;
+    background:transparent;touch-action:none;
+  }
+  input[type=range]::-webkit-slider-runnable-track{
+    height:6px;border-radius:3px;
+    background:linear-gradient(to right,var(--readout) 0%,var(--readout) var(--fill,20%),var(--panel-edge) var(--fill,20%));
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;width:28px;height:28px;margin-top:-11px;
+    border-radius:50%;background:#e8edf2;border:none;
+    box-shadow:0 2px 8px rgba(0,0,0,.5);
+  }
+  input[type=range]:disabled{opacity:.35}
+
+  /* ---- jog buttons ---- */
+  .jog{display:flex;gap:12px;width:100%}
+  .jog button{
+    flex:1;height:64px;font:600 30px var(--mono);
+    background:var(--panel);color:var(--ink);
+    border:1px solid var(--panel-edge);border-radius:14px;cursor:pointer;
+  }
+  .jog button:active{background:#1e2731;transform:translateY(1px)}
+  .jog button:disabled{opacity:.35}
+
+  /* ---- tap toggle ---- */
+  #tapToggle{
+    font:600 12px var(--mono);letter-spacing:.12em;
+    background:var(--housing);color:var(--ink-dim);
+    border:1px solid var(--panel-edge);border-radius:8px;
+    padding:11px 20px;cursor:pointer;min-width:74px;
+  }
+  #tapToggle.on{color:#181205;background:var(--readout);border-color:var(--readout)}
+  #tapToggle:disabled{opacity:.35}
+  #tapToggle:active{transform:translateY(1px)}
+
+  /* ---- footer log ---- */
+  #log{
+    width:100%;margin-top:14px;font-family:var(--mono);font-size:11px;
+    color:var(--ink-dim);text-align:center;min-height:1.2em;
+  }
+  #unsupported{
+    display:none;margin-top:20px;padding:14px;border:1px solid var(--warn);
+    border-radius:10px;color:var(--warn);font-size:13px;line-height:1.5;width:100%;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="title">FAN&nbsp;CTRL</div>
+  <button id="connectBtn">Connect</button>
+</header>
+
+<div class="gauge-wrap">
+  <svg viewBox="0 0 200 200">
+    <circle class="arc-bg" cx="100" cy="100" r="86" fill="none" stroke-width="10"
+            stroke-linecap="round" stroke-dasharray="405 540"
+            transform="rotate(135 100 100)"/>
+    <circle id="arcFg" class="arc-fg" cx="100" cy="100" r="86" fill="none" stroke-width="10"
+            stroke-linecap="round" stroke-dasharray="405 540" stroke-dashoffset="405"
+            transform="rotate(135 100 100)"/>
+  </svg>
+  <div class="gauge-center">
+    <div id="speedNum" class="stale">--</div>
+    <div class="unit">% DUTY</div>
+    <svg id="blade" class="blade" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 11a1.5 1.5 0 0 0-1.06 2.56A1.5 1.5 0 1 0 12 11zm0-9c4 0 4.5 3.5 2.5 5.5L12 10 9.5 7.5C7.5 5.5 8 2 12 2zm8.66 15c-2 3.46-5.4 2.2-6.13-.53L13.6 13l3.42-.6c2.76-.5 5.64 1.14 3.64 4.6zM3.34 17c-2-3.46.88-5.1 3.64-4.6L10.4 13l-.93 3.47C8.74 19.2 5.34 20.46 3.34 17z"/>
+    </svg>
+  </div>
+</div>
+
+<div id="magChip">MAGNET&nbsp;—</div>
+
+<div class="block">
+  <label>SET SPEED <span id="tgtVal">—</span></label>
+  <input type="range" id="slider" min="5" max="100" value="20" disabled>
+</div>
+
+<div class="jog">
+  <button id="btnDown" disabled>−</button>
+  <button id="btnUp" disabled>+</button>
+</div>
+
+<div class="block" style="margin-top:12px">
+  <div style="display:flex;align-items:center;justify-content:space-between">
+    <div>
+      <div style="font:11px var(--mono);letter-spacing:.2em;color:var(--ink-dim)">TAP&nbsp;CONTROL</div>
+      <div style="font:12px var(--sans);color:var(--ink-dim);margin-top:5px">1 tap = up &nbsp;&middot;&nbsp; 2+ taps = down</div>
+    </div>
+    <button id="tapToggle" disabled>OFF</button>
+  </div>
+  <label style="margin-top:16px">TAP FORCE <span id="sensVal">&mdash;</span></label>
+  <input type="range" id="tapSens" min="1" max="31" value="13" disabled>
+</div>
+
+<div id="log">not connected</div>
+<details id="dbgWrap" style="width:100%;margin-top:10px">
+  <summary style="font:11px var(--mono);letter-spacing:.15em;color:var(--ink-dim);cursor:pointer">DEBUG LOG</summary>
+  <pre id="dbg" style="font:10px/1.6 var(--mono);color:var(--ink-dim);white-space:pre-wrap;word-break:break-all;max-height:160px;overflow:auto;padding:8px 0"></pre>
+</details>
+<div id="unsupported">
+  This browser doesn't support Web Bluetooth. On Android, open this page in
+  <b>Chrome</b> (over https). On iPhone, use the <b>Bluefy</b> browser.
+</div>
+
+<script>
+const NUS_SERVICE = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
+const NUS_RX      = '6e400002-b5a3-f393-e0a9-e50e24dcca9e'; // write to board
+const NUS_TX      = '6e400003-b5a3-f393-e0a9-e50e24dcca9e'; // notify from board
+
+const $ = id => document.getElementById(id);
+const connectBtn = $('connectBtn'), speedNum = $('speedNum'), arcFg = $('arcFg'),
+      slider = $('slider'), tgtVal = $('tgtVal'), magChip = $('magChip'),
+      btnUp = $('btnUp'), btnDown = $('btnDown'), log = $('log'), blade = $('blade');
+
+let device = null, rxChar = null, txChar = null, connected = false;
+let rxBuf = '';
+let lastRxTime = 0, rxChunks = 0, rxWatchdog = null;
+let sliderHeld = false;          // user is dragging: don't fight them
+let queuedWrite = null, writing = false;
+
+if (!navigator.bluetooth) {
+  $('unsupported').style.display = 'block';
+  connectBtn.disabled = true;
+  connectBtn.textContent = 'Not supported';
+  connectBtn.style.opacity = '.4';
+  const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  $('unsupported').innerHTML = isIOS
+    ? 'iPhone/iPad browsers can\u2019t use Web Bluetooth (Apple doesn\u2019t support it in ' +
+      'Safari, and all iOS browsers must use Safari\u2019s engine).<br><br>' +
+      '<b>Fix:</b> install the free <b>Bluefy</b> app from the App Store and open ' +
+      'this same page inside it \u2014 everything will work there.'
+    : 'This browser doesn\u2019t support Web Bluetooth. Use <b>Chrome</b> or <b>Edge</b> ' +
+      'over https (or a local file on desktop).';
+  log.textContent = 'browser not supported';
+}
+
+const dbgEl = $('dbg');
+function dbg(msg) {
+  dbgEl.textContent += new Date().toTimeString().slice(0,8) + ' ' + msg + '\n';
+  dbgEl.scrollTop = dbgEl.scrollHeight;
+}
+dbg('page loaded \u00b7 secureContext=' + window.isSecureContext +
+    ' \u00b7 bluetooth=' + !!navigator.bluetooth);
+
+/* ---------------- connection ---------------- */
+connectBtn.addEventListener('click', async () => {
+  if (connected) { device.gatt.disconnect(); return; }
+  try {
+    device = await navigator.bluetooth.requestDevice({
+      filters: [{ services: [NUS_SERVICE] }]
+    });
+    device.addEventListener('gattserverdisconnected', onDisconnected);
+    log.textContent = 'connecting\u2026';
+    dbg('connecting to ' + (device.name || '(unnamed)'));
+    const server  = await device.gatt.connect();
+    const service = await server.getPrimaryService(NUS_SERVICE);
+    rxChar        = await service.getCharacteristic(NUS_RX);
+    txChar        = await service.getCharacteristic(NUS_TX);
+    dbg('TX props: notify=' + txChar.properties.notify + ' indicate=' + txChar.properties.indicate);
+    txChar.addEventListener('characteristicvaluechanged', onNotify);
+    await txChar.startNotifications();
+    dbg('startNotifications OK, waiting for data\u2026');
+
+    connected = true; rxChunks = 0; lastRxTime = Date.now();
+    connectBtn.textContent = 'Disconnect';
+    connectBtn.classList.add('connected');
+    [slider, btnUp, btnDown, tapToggle, tapSens].forEach(el => el.disabled = false);
+    log.textContent = 'connected to ' + (device.name || 'device');
+    send('?');                                   // ask for status right away
+
+    // watchdog: if the board stays silent, retry enabling notifications
+    clearInterval(rxWatchdog);
+    rxWatchdog = setInterval(async () => {
+      if (!connected) return;
+      if (Date.now() - lastRxTime > 4000) {
+        dbg('no data for 4 s (' + rxChunks + ' chunks total) \u2014 retrying startNotifications');
+        try { await txChar.startNotifications(); send('?'); }
+        catch (e) { dbg('retry failed: ' + e.message); }
+        lastRxTime = Date.now();
+      }
+    }, 4000);
+  } catch (e) {
+    log.textContent = e.name === 'NotFoundError' ? 'no device chosen' : ('error: ' + e.message);
+    dbg('connect error: ' + e.name + ' ' + e.message);
+  }
+});
+
+function onDisconnected() {
+  connected = false; rxChar = null; txChar = null;
+  clearInterval(rxWatchdog);
+  dbg('disconnected (' + rxChunks + ' chunks received this session)');
+  connectBtn.textContent = 'Connect';
+  connectBtn.classList.remove('connected');
+  [slider, btnUp, btnDown, tapToggle, tapSens].forEach(el => el.disabled = true);
+  speedNum.classList.add('stale');
+  log.textContent = 'disconnected';
+  blade.style.animationPlayState = 'paused';
+}
+
+/* ---------------- outgoing (queued so GATT writes never overlap) ---------------- */
+async function send(str) {
+  queuedWrite = str;
+  if (writing) return;
+  writing = true;
+  while (queuedWrite !== null && rxChar) {
+    const s = queuedWrite; queuedWrite = null;
+    const data = new TextEncoder().encode(s);
+    try {
+      if (rxChar.writeValueWithoutResponse) await rxChar.writeValueWithoutResponse(data);
+      else await rxChar.writeValue(data);
+    } catch (e) { /* dropped write; status loop will resync UI */ }
+  }
+  writing = false;
+}
+
+/* ---------------- incoming status ---------------- */
+function onNotify(ev) {
+  lastRxTime = Date.now(); rxChunks++;
+  const text = new TextDecoder().decode(ev.target.value);
+  if (rxChunks <= 5 || rxChunks % 50 === 0)
+    dbg('rx #' + rxChunks + ' (' + ev.target.value.byteLength + 'B): ' + JSON.stringify(text));
+  rxBuf += text;
+  let nl;
+  while ((nl = rxBuf.indexOf('\n')) >= 0) {
+    handleLine(rxBuf.slice(0, nl).trim());
+    rxBuf = rxBuf.slice(nl + 1);
+  }
+}
+
+function handleLine(line) {
+  // new format: "S:38 T:40 M:NONE"  (old "SPD:/TGT:/MAG:" still accepted)
+  const spd = /\bS(?:PD)?:([\d.]+)/.exec(line);
+  const tgt = /\bT(?:GT)?:([\d.]+)/.exec(line);
+  const mag = /\bM(?:AG)?:(\w+)/.exec(line);
+  if (spd) setSpeedUI(parseFloat(spd[1]));
+  if (tgt && !sliderHeld) {
+    slider.value = Math.round(parseFloat(tgt[1]));
+    paintSlider();
+  }
+  if (mag) {
+    const m = mag[1];
+    magChip.textContent = m === 'N' ? 'MAGNET N \u00b7 RAMPING UP'
+                       : m === 'S' ? 'MAGNET S \u00b7 RAMPING DOWN'
+                       : 'MAGNET \u2014';
+    magChip.classList.toggle('active', m === 'N' || m === 'S');
+  }
+  const tap = /\bA:(\d)/.exec(line);
+  if (tap) setTapUI(tap[1] === '1');
+  const thr = /\bH:(\d+)/.exec(line);
+  if (thr) setSensUI(parseInt(thr[1], 10));
+}
+
+function setSpeedUI(pct) {
+  speedNum.textContent = pct.toFixed(0);
+  speedNum.classList.remove('stale');
+  // arc: 405 dash units = 270deg sweep
+  arcFg.style.strokeDashoffset = 405 - (pct / 100) * 405;
+  // blade spin: 100% -> 0.4s/rev, 5% -> 8s/rev
+  blade.style.animationDuration = (40 / Math.max(pct, 5)).toFixed(2) + 's';
+  blade.style.animationPlayState = 'running';
+}
+
+/* ---------------- slider (throttled sends) ---------------- */
+function paintSlider() {
+  const pct = (slider.value - slider.min) / (slider.max - slider.min) * 100;
+  slider.style.setProperty('--fill', pct + '%');
+  tgtVal.textContent = slider.value + '%';
+}
+paintSlider();
+
+let lastSent = 0, trailTimer = null;
+function sliderChanged(final) {
+  paintSlider();
+  const now = Date.now();
+  clearTimeout(trailTimer);
+  if (final || now - lastSent > 150) {
+    lastSent = now;
+    send('S' + slider.value + '\n');
+  } else {
+    trailTimer = setTimeout(() => sliderChanged(true), 160);
+  }
+}
+slider.addEventListener('pointerdown', () => sliderHeld = true);
+slider.addEventListener('input', () => sliderChanged(false));
+const release = () => { sliderHeld = false; sliderChanged(true); };
+slider.addEventListener('change', release);
+slider.addEventListener('pointerup', release);
+slider.addEventListener('pointercancel', () => sliderHeld = false);
+
+/* ---------------- jog + tap toggle ---------------- */
+btnUp.addEventListener('click',  () => send('+'));
+btnDown.addEventListener('click', () => send('-'));
+
+const tapToggle = $('tapToggle');
+let tapOn = false;
+function setTapUI(on) {
+  tapOn = on;
+  tapToggle.textContent = on ? 'ON' : 'OFF';
+  tapToggle.classList.toggle('on', on);
+}
+tapToggle.addEventListener('click', () => {
+  send('A' + (tapOn ? 0 : 1) + '\n');   // UI updates when the board's status confirms
+});
+
+/* ---------------- tap force slider ---------------- */
+const tapSens = $('tapSens'), sensVal = $('sensVal');
+let sensHeld = false;
+function paintSens() {
+  const pct = (tapSens.value - tapSens.min) / (tapSens.max - tapSens.min) * 100;
+  tapSens.style.setProperty('--fill', pct + '%');
+  sensVal.textContent = tapSens.value + ' / 31';
+}
+paintSens();
+tapSens.addEventListener('pointerdown', () => sensHeld = true);
+tapSens.addEventListener('input', paintSens);
+tapSens.addEventListener('change', () => { sensHeld = false; send('H' + tapSens.value + '\n'); });
+tapSens.addEventListener('pointerup',     () => sensHeld = false);
+tapSens.addEventListener('pointercancel', () => sensHeld = false);
+function setSensUI(v) {
+  if (sensHeld) return;               // don't fight the user's finger
+  tapSens.value = v;
+  paintSens();
+}
+</script>
+</body>
+</html>
